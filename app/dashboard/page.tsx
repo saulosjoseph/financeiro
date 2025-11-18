@@ -425,7 +425,7 @@ export default function Dashboard() {
               </div>
 
               {/* Quick Actions */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <Link
                   href={`/rendas?family=${selectedFamilyId}`}
                   className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
@@ -444,6 +444,16 @@ export default function Dashboard() {
                   <div>
                     <h3 className="text-xl font-bold">Adicionar Gasto</h3>
                     <p className="text-sm opacity-90">Registrar nova saída</p>
+                  </div>
+                </Link>
+                <Link
+                  href={`/transacoes?family=${selectedFamilyId}`}
+                  className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl"
+                >
+                  <span className="text-3xl">📋</span>
+                  <div>
+                    <h3 className="text-xl font-bold">Transações</h3>
+                    <p className="text-sm opacity-90">Ver e editar</p>
                   </div>
                 </Link>
                 <Link
