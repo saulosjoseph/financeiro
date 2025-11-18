@@ -36,13 +36,22 @@ export default function Dashboard() {
     }
   }, [selectedFamilyId]);
 
-  // Load selected family from localStorage on mount
+  // Load selected family from localStorage on mount or auto-select if only one family
   useEffect(() => {
+    if (!families || families.length === 0) return;
+    
+    // If user has only one family, auto-select it
+    if (families.length === 1 && !selectedFamilyId) {
+      setSelectedFamilyId(families[0].id);
+      return;
+    }
+    
+    // Otherwise, try to load from localStorage
     const savedFamilyId = localStorage.getItem('selectedFamilyId');
-    if (savedFamilyId && families?.find(f => f.id === savedFamilyId)) {
+    if (savedFamilyId && families.find(f => f.id === savedFamilyId)) {
       setSelectedFamilyId(savedFamilyId);
     }
-  }, [families]);
+  }, [families, selectedFamilyId]);
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,20 +229,24 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Create Family */}
-          <CreateFamilyForm onSuccess={mutateFamilies} />
+          {/* Create Family - Only show if user has no families */}
+          {families && families.length === 0 && (
+            <CreateFamilyForm onSuccess={mutateFamilies} />
+          )}
 
-          {/* Family Selection */}
-          <div>
-            <h2 className="text-lg font-semibold text-black dark:text-white mb-3">
-              Selecione uma Família
-            </h2>
-            <FamilySelector
-              families={families}
-              selectedFamilyId={selectedFamilyId}
-              onSelectFamily={setSelectedFamilyId}
-            />
-          </div>
+          {/* Family Selection - Only show if user has more than one family */}
+          {families && families.length > 1 && (
+            <div>
+              <h2 className="text-lg font-semibold text-black dark:text-white mb-3">
+                Selecione uma Família
+              </h2>
+              <FamilySelector
+                families={families}
+                selectedFamilyId={selectedFamilyId}
+                onSelectFamily={setSelectedFamilyId}
+              />
+            </div>
+          )}
 
           {/* Dashboard Content */}
           {selectedFamilyId && selectedFamily && (
