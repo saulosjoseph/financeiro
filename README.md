@@ -1,33 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Financeiro
 
-## Getting Started
+Aplicação de gestão financeira desenvolvida com Next.js e PostgreSQL.
 
-First, run the development server:
+## Pré-requisitos
 
+- Node.js 20.9.0 ou superior
+- Docker e Docker Compose
+
+## Configuração
+
+1. Clone o repositório
+2. Instale as dependências:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Configure as variáveis de ambiente:
+```bash
+cp .env.example .env.local
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+4. Inicie o banco de dados PostgreSQL:
+```bash
+docker-compose up -d
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+5. Aguarde alguns segundos para o banco inicializar, então inicie a aplicação:
+```bash
+npm run dev
+```
 
-## Learn More
+A aplicação estará disponível em `http://localhost:3000`
 
-To learn more about Next.js, take a look at the following resources:
+## Banco de Dados
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+O PostgreSQL estará disponível em:
+- Host: localhost
+- Porta: 5432
+- Database: financeiro
+- Usuário: financeiro
+- Senha: financeiro123
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Comandos úteis do Docker
+
+```bash
+# Iniciar o banco de dados
+docker-compose up -d
+
+# Parar o banco de dados
+docker-compose down
+
+# Ver logs do banco
+docker-compose logs -f postgres
+
+# Acessar o PostgreSQL via CLI
+docker-compose exec postgres psql -U financeiro -d financeiro
+```
+
+## Estrutura do Projeto
+
+- `/app` - Páginas e layouts Next.js
+- `/lib` - Utilitários e configurações (incluindo conexão com banco)
+- `/public` - Arquivos estáticos
+
+## Desenvolvimento
+
+```bash
+# Modo desenvolvimento
+npm run dev
+
+# Build para produção
+npm run build
+
+# Iniciar em produção
+npm run start
+
+# Lint
+npm run lint
+```
 
 ## Deploy on Vercel
 
