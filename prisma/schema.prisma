@@ -36,9 +36,11 @@ model Family {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  members FamilyMember[]
-  incomes Income[]
-  tags    Tag[]
+  members     FamilyMember[]
+  invitations FamilyInvitation[]
+  shareLinks  FamilyShareLink[]
+  incomes     Income[]
+  tags        Tag[]
 
   @@map("families")
 }
@@ -69,6 +71,42 @@ model FamilyMember {
 
   @@unique([familyId, userId])
   @@map("family_members")
+}
+
+model FamilyInvitation {
+  id         String   @id @default(cuid())
+  familyId   String   @map("family_id")
+  email      String
+  token      String   @unique
+  role       String   @default("member")
+  invitedBy  String   @map("invited_by")
+  expiresAt  DateTime @map("expires_at")
+  acceptedAt DateTime? @map("accepted_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, email])
+  @@index([token])
+  @@index([email])
+  @@map("family_invitations")
+}
+
+model FamilyShareLink {
+  id        String    @id @default(cuid())
+  familyId  String    @map("family_id")
+  token     String    @unique
+  role      String    @default("member")
+  createdBy String    @map("created_by")
+  usedBy    String?   @map("used_by")
+  usedAt    DateTime? @map("used_at")
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("family_share_links")
 }
 
 model Income {

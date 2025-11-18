@@ -85,6 +85,14 @@ export default function Home() {
   const [isCreatingTag, setIsCreatingTag] = useState(false);
   const [showCreateTag, setShowCreateTag] = useState(false);
 
+  // Estados para links compartilháveis
+  const [showShareLinks, setShowShareLinks] = useState(false);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const { data: shareLinks, mutate: mutateShareLinks } = useSWR<any[]>(
+    selectedFamily ? `/api/families/${selectedFamily}/share-link` : null,
+    fetcher
+  );
+
   const handleCreateFamily = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!familyName.trim()) return;
@@ -204,6 +212,73 @@ export default function Home() {
     setSelectedTags(prev =>
       prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
     );
+  };
+
+  const handleGenerateShareLink = async () => {
+    if (!selectedFamily) return;
+    setIsGeneratingLink(true);
+
+    try {
+      const response = await fetch(`/api/families/${selectedFamily}/share-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'member', expiresInDays: 7 }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        mutateShareLinks();
+        // Copiar automaticamente para área de transferência
+        if (navigator.clipboard && data.shareUrl) {
+          await navigator.clipboard.writeText(data.shareUrl);
+          alert('Link gerado e copiado para área de transferência!\n\n' + data.shareUrl);
+        } else {
+          alert('Link gerado:\n\n' + data.shareUrl);
+        }
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao gerar link');
+      }
+    } catch (error) {
+      alert('Erro ao gerar link');
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const handleDeleteShareLink = async (linkId: string) => {
+    if (!selectedFamily) return;
+    if (!confirm('Tem certeza que deseja invalidar este link?')) return;
+
+    try {
+      const response = await fetch(
+        `/api/families/${selectedFamily}/share-link?linkId=${linkId}`,
+        { method: 'DELETE' }
+      );
+
+      if (response.ok) {
+        mutateShareLinks();
+        alert('Link invalidado com sucesso!');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao invalidar link');
+      }
+    } catch (error) {
+      alert('Erro ao invalidar link');
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        alert('Link copiado para área de transferência!');
+      } else {
+        alert('Copie o link:\n\n' + text);
+      }
+    } catch (error) {
+      alert('Copie o link:\n\n' + text);
+    }
   };
 
   const getTotalIncome = () => {
@@ -352,12 +427,20 @@ export default function Home() {
                   {currentFamily.name}
                 </h2>
                 {isAdmin && (
-                  <button
-                    onClick={() => setShowAddMember(!showAddMember)}
-                    className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-green-600 text-white rounded hover:bg-green-700 whitespace-nowrap"
-                  >
-                    {showAddMember ? 'Cancelar' : '+ Adicionar Membro'}
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setShowAddMember(!showAddMember)}
+                      className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-green-600 text-white rounded hover:bg-green-700 whitespace-nowrap"
+                    >
+                      {showAddMember ? 'Cancelar' : '+ Adicionar Membro'}
+                    </button>
+                    <button
+                      onClick={() => setShowShareLinks(!showShareLinks)}
+                      className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
+                    >
+                      🔗 Links Compartilháveis
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -385,6 +468,73 @@ export default function Home() {
                     </button>
                   </div>
                 </form>
+              )}
+
+              {/* Links Compartilháveis */}
+              {showShareLinks && (
+                <div className="bg-blue-50 dark:bg-blue-950 p-3 sm:p-4 rounded-lg space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50">
+                      Links Compartilháveis
+                    </h3>
+                    <button
+                      onClick={handleGenerateShareLink}
+                      disabled={isGeneratingLink}
+                      className="px-3 sm:px-4 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 whitespace-nowrap"
+                    >
+                      {isGeneratingLink ? 'Gerando...' : '+ Gerar Novo Link'}
+                    </button>
+                  </div>
+                  
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                    Links de uso único que qualquer pessoa autenticada pode usar para entrar na família. 
+                    Válidos por 7 dias.
+                  </p>
+
+                  {/* Lista de links ativos */}
+                  {Array.isArray(shareLinks) && shareLinks.length > 0 ? (
+                    <div className="space-y-2">
+                      {shareLinks.map((link) => {
+                        const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/join/${link.token}`;
+                        return (
+                          <div
+                            key={link.id}
+                            className="bg-white dark:bg-gray-800 p-3 rounded border border-blue-200 dark:border-blue-800"
+                          >
+                            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-mono bg-gray-100 dark:bg-gray-700 p-2 rounded truncate">
+                                  {shareUrl}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  Expira em: {new Date(link.expiresAt).toLocaleDateString('pt-BR')}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => copyToClipboard(shareUrl)}
+                                  className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
+                                >
+                                  📋 Copiar
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteShareLink(link.id)}
+                                  className="px-3 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap"
+                                >
+                                  🗑️ Deletar
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-center text-gray-500 dark:text-gray-400 py-4 text-sm">
+                      Nenhum link ativo. Clique em "Gerar Novo Link" para criar um.
+                    </p>
+                  )}
+                </div>
               )}
 
               {/* Membros */}
