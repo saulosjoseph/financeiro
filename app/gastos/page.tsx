@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useExpenses } from '@/lib/hooks/useExpenses';
 import { useTags } from '@/lib/hooks/useTags';
@@ -9,7 +9,7 @@ import { useFamily } from '@/lib/hooks/useFamily';
 import TagSelector from '@/components/TagSelector';
 import Link from 'next/link';
 
-export default function ExpensesPage() {
+function ExpensesContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -394,5 +394,17 @@ export default function ExpensesPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ExpensesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+        <p className="text-lg">Carregando...</p>
+      </div>
+    }>
+      <ExpensesContent />
+    </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useIncomes } from '@/lib/hooks/useIncomes';
 import { useExpenses } from '@/lib/hooks/useExpenses';
@@ -17,7 +17,7 @@ import {
 } from '@/lib/utils/dateAnalysis';
 import Link from 'next/link';
 
-export default function AnalysesPage() {
+function AnalysesContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -178,5 +178,17 @@ export default function AnalysesPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function AnalysesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+        <p className="text-lg">Carregando...</p>
+      </div>
+    }>
+      <AnalysesContent />
+    </Suspense>
   );
 }
