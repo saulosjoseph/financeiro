@@ -48,6 +48,21 @@ interface Income {
   tags: IncomeTag[];
 }
 
+interface ExpenseTag {
+  id: string;
+  tag: Tag;
+}
+
+interface Expense {
+  id: string;
+  amount: string;
+  description: string | null;
+  category: string | null;
+  date: string;
+  user: User;
+  tags: ExpenseTag[];
+}
+
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function Home() {
@@ -56,6 +71,10 @@ export default function Home() {
   const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
   const { data: incomes, mutate: mutateIncomes } = useSWR<Income[]>(
     selectedFamily ? `/api/families/${selectedFamily}/incomes` : null,
+    fetcher
+  );
+  const { data: expenses, mutate: mutateExpenses } = useSWR<Expense[]>(
+    selectedFamily ? `/api/families/${selectedFamily}/expenses` : null,
     fetcher
   );
   const { data: tags, mutate: mutateTags } = useSWR<Tag[]>(
@@ -73,6 +92,13 @@ export default function Home() {
   const [source, setSource] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isAddingIncome, setIsAddingIncome] = useState(false);
+
+  // Estados para adicionar gasto
+  const [expenseAmount, setExpenseAmount] = useState('');
+  const [expenseDescription, setExpenseDescription] = useState('');
+  const [expenseCategory, setExpenseCategory] = useState('');
+  const [expenseSelectedTags, setExpenseSelectedTags] = useState<string[]>([]);
+  const [isAddingExpense, setIsAddingExpense] = useState(false);
 
   // Estados para adicionar membro
   const [memberEmail, setMemberEmail] = useState('');
@@ -152,6 +178,40 @@ export default function Home() {
     }
   };
 
+  const handleAddExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!expenseAmount || !selectedFamily) return;
+    setIsAddingExpense(true);
+
+    try {
+      const response = await fetch(`/api/families/${selectedFamily}/expenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: parseFloat(expenseAmount),
+          description: expenseDescription,
+          category: expenseCategory,
+          tagIds: expenseSelectedTags,
+        }),
+      });
+
+      if (response.ok) {
+        setExpenseAmount('');
+        setExpenseDescription('');
+        setExpenseCategory('');
+        setExpenseSelectedTags([]);
+        mutateExpenses();
+        mutateFamilies();
+      } else {
+        alert('Erro ao adicionar gasto');
+      }
+    } catch (error) {
+      alert('Erro ao adicionar gasto');
+    } finally {
+      setIsAddingExpense(false);
+    }
+  };
+
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memberEmail.trim() || !selectedFamily) return;
@@ -210,6 +270,12 @@ export default function Home() {
 
   const toggleTag = (tagId: string) => {
     setSelectedTags(prev =>
+      prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const toggleExpenseTag = (tagId: string) => {
+    setExpenseSelectedTags(prev =>
       prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
     );
   };
@@ -284,6 +350,15 @@ export default function Home() {
   const getTotalIncome = () => {
     if (!incomes || !Array.isArray(incomes)) return 0;
     return incomes.reduce((sum, income) => sum + parseFloat(income.amount), 0);
+  };
+
+  const getTotalExpense = () => {
+    if (!expenses || !Array.isArray(expenses)) return 0;
+    return expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+  };
+
+  const getBalance = () => {
+    return getTotalIncome() - getTotalExpense();
   };
 
   const currentFamily = Array.isArray(families) ? families.find(f => f.id === selectedFamily) : undefined;
@@ -684,6 +759,93 @@ export default function Home() {
                 </p>
               </div>
 
+              {/* Adicionar Gasto */}
+              <form onSubmit={handleAddExpense} className="bg-red-50 dark:bg-red-950 p-3 sm:p-4 rounded-lg space-y-3">
+                <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50">Adicionar Gasto</h3>
+
+                {/* Seletor de tags para gastos */}
+                {Array.isArray(tags) && tags.length > 0 && (
+                  <div>
+                    <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mb-2 block">
+                      Tags (opcional)
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => toggleExpenseTag(tag.id)}
+                          className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-full border-2 transition-all ${
+                            expenseSelectedTags.includes(tag.id)
+                              ? 'border-current shadow-md scale-105'
+                              : 'border-transparent opacity-70 hover:opacity-100'
+                          }`}
+                          style={{
+                            backgroundColor: tag.color,
+                            color: '#fff',
+                          }}
+                        >
+                          {tag.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Valor (R$)"
+                    value={expenseAmount}
+                    onChange={(e) => setExpenseAmount(e.target.value)}
+                    required
+                    className="px-3 py-2 text-sm sm:text-base border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Categoria (ex: Alimentação)"
+                    value={expenseCategory}
+                    onChange={(e) => setExpenseCategory(e.target.value)}
+                    className="px-3 py-2 text-sm sm:text-base border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Descrição (opcional)"
+                  value={expenseDescription}
+                  onChange={(e) => setExpenseDescription(e.target.value)}
+                  className="w-full px-3 py-2 text-sm sm:text-base border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                />
+                <button
+                  type="submit"
+                  disabled={isAddingExpense}
+                  className="w-full px-4 py-2 text-sm sm:text-base bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400"
+                >
+                  {isAddingExpense ? 'Adicionando...' : 'Adicionar Gasto'}
+                </button>
+              </form>
+
+              {/* Gasto Total e Saldo */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-gradient-to-r from-red-500 to-rose-600 p-4 sm:p-6 rounded-lg text-white">
+                  <p className="text-xs sm:text-sm opacity-90">Gastos Totais</p>
+                  <p className="text-2xl sm:text-4xl font-bold mt-1 sm:mt-2">
+                    R$ {getTotalExpense().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className={`bg-gradient-to-r p-4 sm:p-6 rounded-lg text-white ${
+                  getBalance() >= 0 
+                    ? 'from-blue-500 to-indigo-600' 
+                    : 'from-orange-500 to-amber-600'
+                }`}>
+                  <p className="text-xs sm:text-sm opacity-90">Saldo</p>
+                  <p className="text-2xl sm:text-4xl font-bold mt-1 sm:mt-2">
+                    R$ {getBalance().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+              </div>
+
               {/* Lista de Rendas */}
               <div>
                 <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50 mb-3">Rendas Registradas</h3>
@@ -741,6 +903,68 @@ export default function Home() {
                   {(!incomes || !Array.isArray(incomes) || incomes.length === 0) && (
                     <p className="text-gray-500 dark:text-gray-400 text-center py-8">
                       Nenhuma renda registrada ainda
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Lista de Gastos */}
+              <div>
+                <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50 mb-3">Gastos Registrados</h3>
+                <div className="space-y-2 sm:space-y-3">
+                  {Array.isArray(expenses) && expenses.map((expense) => (
+                    <div
+                      key={expense.id}
+                      className="p-3 sm:p-4 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-900"
+                    >
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+                        <div className="flex-1 w-full">
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            {expense.user.image && (
+                              <img
+                                src={expense.user.image}
+                                alt={expense.user.name || ''}
+                                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex-shrink-0"
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-base sm:text-lg text-red-700 dark:text-red-400">
+                                - R$ {parseFloat(expense.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
+                                {expense.user.name} • {expense.category || 'Sem categoria'}
+                              </p>
+                              {/* Tags do gasto */}
+                              {expense.tags && expense.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {expense.tags.map((expenseTag) => (
+                                    <span
+                                      key={expenseTag.id}
+                                      className="px-2 py-0.5 text-xs rounded-full text-white"
+                                      style={{ backgroundColor: expenseTag.tag.color }}
+                                    >
+                                      {expenseTag.tag.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {expense.description && (
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2 ml-10 sm:ml-12">
+                              {expense.description}
+                            </p>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 ml-10 sm:ml-0 whitespace-nowrap">
+                          {new Date(expense.date).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {(!expenses || !Array.isArray(expenses) || expenses.length === 0) && (
+                    <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                      Nenhum gasto registrado ainda
                     </p>
                   )}
                 </div>

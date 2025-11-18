@@ -9,8 +9,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -26,6 +27,7 @@ model User {
   sessions        Session[]
   familyMembers   FamilyMember[]
   incomes         Income[]
+  expenses        Expense[]
 
   @@map("users")
 }
@@ -40,6 +42,7 @@ model Family {
   invitations FamilyInvitation[]
   shareLinks  FamilyShareLink[]
   incomes     Income[]
+  expenses    Expense[]
   tags        Tag[]
 
   @@map("families")
@@ -52,8 +55,9 @@ model Tag {
   familyId  String   @map("family_id")
   createdAt DateTime @default(now()) @map("created_at")
 
-  family  Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  incomes IncomeTag[]
+  family   Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  incomes  IncomeTag[]
+  expenses ExpenseTag[]
 
   @@unique([familyId, name])
   @@map("tags")
@@ -137,6 +141,36 @@ model IncomeTag {
 
   @@unique([incomeId, tagId])
   @@map("income_tags")
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  familyId    String   @map("family_id")
+  userId      String   @map("user_id")
+  amount      Decimal  @db.Decimal(10, 2)
+  description String?
+  category    String? // "food", "transport", "health", "education", etc
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  family Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags   ExpenseTag[]
+
+  @@map("expenses")
+}
+
+model ExpenseTag {
+  id        String @id @default(cuid())
+  expenseId String @map("expense_id")
+  tagId     String @map("tag_id")
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, tagId])
+  @@map("expense_tags")
 }
 
 model Account {
