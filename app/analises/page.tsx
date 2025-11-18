@@ -229,54 +229,6 @@ function AnalysesContent() {
               Exibindo dados de {new Date(startDate).toLocaleDateString('pt-BR')} até {new Date(endDate).toLocaleDateString('pt-BR')}
             </p>
           </div>
-
-          {/* Period Selector */}
-          <div>
-            <h3 className="font-medium text-base text-black dark:text-zinc-50 mb-3">
-              Selecione o Período de Análise
-            </h3>
-            <PeriodSelector
-              selectedPeriod={selectedPeriod}
-              onSelectPeriod={setSelectedPeriod}
-            />
-          </div>
-
-          {/* Analysis Chart */}
-          <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-lg">
-            <h3 className="font-medium text-lg text-black dark:text-zinc-50 mb-4">
-              Histórico - {selectedPeriod === 'weekly' ? 'Semanal' :
-                selectedPeriod === 'biweekly' ? 'Quinzenal' :
-                selectedPeriod === 'monthly' ? 'Mensal' :
-                selectedPeriod === 'bimonthly' ? 'Bimestral' :
-                selectedPeriod === 'quarterly' ? 'Trimestral' :
-                selectedPeriod === 'semiannual' ? 'Semestral' : 'Anual'}
-            </h3>
-            <PeriodAnalysisChart analyses={analyses} />
-          </div>
-
-          {/* Summary Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg border border-green-200 dark:border-green-900">
-              <h4 className="font-medium text-sm text-green-900 dark:text-green-100 mb-2">
-                Média de Rendas por Período
-              </h4>
-              <p className="text-2xl font-bold text-green-700 dark:text-green-400">
-                {formatCurrency(
-                  analyses.reduce((sum, a) => sum + a.totalIncome, 0) / (analyses.length || 1)
-                )}
-              </p>
-            </div>
-            <div className="bg-red-50 dark:bg-red-950 p-4 rounded-lg border border-red-200 dark:border-red-900">
-              <h4 className="font-medium text-sm text-red-900 dark:text-red-100 mb-2">
-                Média de Gastos por Período
-              </h4>
-              <p className="text-2xl font-bold text-red-700 dark:text-red-400">
-                {formatCurrency(
-                  analyses.reduce((sum, a) => sum + a.totalExpense, 0) / (analyses.length || 1)
-                )}
-              </p>
-            </div>
-          </div>
         </div>
       </main>
     </div>
