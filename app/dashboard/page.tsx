@@ -18,6 +18,9 @@ export default function Dashboard() {
   const [showAddMember, setShowAddMember] = useState(false);
   const [memberEmail, setMemberEmail] = useState('');
   const [isAddingMember, setIsAddingMember] = useState(false);
+  const [showShareLinks, setShowShareLinks] = useState(false);
+  const [shareLinks, setShareLinks] = useState<any[]>([]);
+  const [isCreatingLink, setIsCreatingLink] = useState(false);
 
   const { families, selectedFamily, mutate: mutateFamilies } = useFamily(selectedFamilyId);
   const { totalIncome } = useIncomes(selectedFamilyId);
@@ -68,6 +71,74 @@ export default function Dashboard() {
       setIsAddingMember(false);
     }
   };
+
+  const fetchShareLinks = async () => {
+    if (!selectedFamilyId) return;
+    try {
+      const response = await fetch(`/api/families/${selectedFamilyId}/share-link`);
+      if (response.ok) {
+        const data = await response.json();
+        setShareLinks(data);
+      }
+    } catch (error) {
+      console.error('Error fetching share links:', error);
+    }
+  };
+
+  const handleCreateShareLink = async () => {
+    if (!selectedFamilyId) return;
+    setIsCreatingLink(true);
+    try {
+      const response = await fetch(`/api/families/${selectedFamilyId}/share-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'member', expiresInDays: 7 }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setShareLinks([...shareLinks, data]);
+        alert('Link criado com sucesso!');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao criar link');
+      }
+    } catch (error) {
+      alert('Erro ao criar link');
+    } finally {
+      setIsCreatingLink(false);
+    }
+  };
+
+  const handleDeleteShareLink = async (linkId: string) => {
+    if (!selectedFamilyId || !confirm('Deseja realmente deletar este link?')) return;
+    try {
+      const response = await fetch(`/api/families/${selectedFamilyId}/share-link?linkId=${linkId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setShareLinks(shareLinks.filter(link => link.id !== linkId));
+        alert('Link deletado com sucesso!');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao deletar link');
+      }
+    } catch (error) {
+      alert('Erro ao deletar link');
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert('Link copiado para a área de transferência!');
+  };
+
+  useEffect(() => {
+    if (showShareLinks && selectedFamilyId) {
+      fetchShareLinks();
+    }
+  }, [showShareLinks, selectedFamilyId]);
 
   if (status === 'loading') {
     return (
@@ -172,12 +243,20 @@ export default function Dashboard() {
                   {selectedFamily.name}
                 </h2>
                 {isAdmin && (
-                  <button
-                    onClick={() => setShowAddMember(!showAddMember)}
-                    className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 whitespace-nowrap"
-                  >
-                    {showAddMember ? 'Cancelar' : '+ Adicionar Membro'}
-                  </button>
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => setShowAddMember(!showAddMember)}
+                      className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 whitespace-nowrap"
+                    >
+                      {showAddMember ? 'Cancelar' : '+ Adicionar por Email'}
+                    </button>
+                    <button
+                      onClick={() => setShowShareLinks(!showShareLinks)}
+                      className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
+                    >
+                      {showShareLinks ? 'Fechar Links' : '🔗 Links de Convite'}
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -205,6 +284,78 @@ export default function Dashboard() {
                     </button>
                   </div>
                 </form>
+              )}
+
+              {/* Share Links Section */}
+              {showShareLinks && (
+                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50">
+                      Links de Convite (Uso Único)
+                    </h3>
+                    <button
+                      onClick={handleCreateShareLink}
+                      disabled={isCreatingLink}
+                      className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+                    >
+                      {isCreatingLink ? 'Criando...' : '+ Criar Novo Link'}
+                    </button>
+                  </div>
+
+                  {shareLinks.length === 0 ? (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
+                      Nenhum link ativo. Crie um link para compartilhar com outras pessoas.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {shareLinks.map((link) => (
+                        <div
+                          key={link.id}
+                          className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
+                        >
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                  Expira em: {new Date(link.expiresAt).toLocaleDateString('pt-BR')}
+                                </span>
+                                {link.usedAt && (
+                                  <span className="text-xs bg-gray-500 text-white px-2 py-0.5 rounded">
+                                    Usado
+                                  </span>
+                                )}
+                              </div>
+                              <code className="text-xs bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded block overflow-x-auto">
+                                {`${window.location.origin}/join/${link.token}`}
+                              </code>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => copyToClipboard(`${window.location.origin}/join/${link.token}`)}
+                                className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 whitespace-nowrap"
+                              >
+                                📋 Copiar
+                              </button>
+                              <button
+                                onClick={() => handleDeleteShareLink(link.id)}
+                                className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded border border-blue-200 dark:border-blue-800">
+                    <p className="text-xs text-blue-800 dark:text-blue-200">
+                      💡 <strong>Dica:</strong> Links de convite podem ser usados apenas uma vez e expiram em 7 dias. 
+                      Compartilhe com pessoas que você deseja adicionar à família.
+                    </p>
+                  </div>
+                </div>
               )}
 
               {/* Members List */}
