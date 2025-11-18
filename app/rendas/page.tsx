@@ -8,6 +8,7 @@ import { useTags } from '@/lib/hooks/useTags';
 import { useFamily } from '@/lib/hooks/useFamily';
 import TagSelector from '@/components/TagSelector';
 import Link from 'next/link';
+import { formatCurrency, parseCurrency } from '@/lib/utils/currencyMask';
 
 function IncomesContent() {
   const { data: session, status } = useSession();
@@ -40,6 +41,11 @@ function IncomesContent() {
     }
   }, [familyId, router]);
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCurrency(e.target.value);
+    setAmount(formatted);
+  };
+
   const handleAddIncome = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !familyId) return;
@@ -50,7 +56,7 @@ function IncomesContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: parseFloat(amount),
+          amount: parseFloat(parseCurrency(amount)),
           description,
           source,
           date: new Date(date).toISOString(),
@@ -214,11 +220,11 @@ function IncomesContent() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="numeric"
                 placeholder="Valor (R$)"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={handleAmountChange}
                 required
                 className="px-3 py-2 text-sm border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
               />
