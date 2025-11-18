@@ -30,10 +30,10 @@ export interface Family {
 export function useFamily(familyId?: string | null) {
   const { data: families, mutate, error, isLoading } = useSWR<Family[]>('/api/families', fetcher);
   
-  const selectedFamily = families?.find(f => f.id === familyId);
+  const selectedFamily = Array.isArray(families) ? families.find(f => f.id === familyId) : undefined;
   
   return {
-    families,
+    families: Array.isArray(families) ? families : [],
     selectedFamily,
     mutate,
     error,
