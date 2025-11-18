@@ -114,20 +114,26 @@ model FamilyShareLink {
 }
 
 model Income {
-  id          String   @id @default(cuid())
-  familyId    String   @map("family_id")
-  userId      String   @map("user_id")
-  amount      Decimal  @db.Decimal(10, 2)
-  description String?
-  source      String? // "salary", "freelance", "investment", etc
-  date        DateTime @default(now())
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(cuid())
+  familyId         String   @map("family_id")
+  userId           String   @map("user_id")
+  amount           Decimal  @db.Decimal(10, 2)
+  description      String?
+  source           String? // "salary", "freelance", "investment", etc
+  date             DateTime @default(now())
+  isRecurring      Boolean  @default(false) @map("is_recurring")
+  recurringType    String? @map("recurring_type") // "weekly", "biweekly", "monthly", "bimonthly", "quarterly", "semiannual", "annual"
+  recurringDay     Int? @map("recurring_day") // Day of month (1-31) or day of week (0-6 for weekly)
+  recurringEndDate DateTime? @map("recurring_end_date")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   family Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
   user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   tags   IncomeTag[]
 
+  @@index([familyId, date])
+  @@index([isRecurring])
   @@map("incomes")
 }
 
@@ -144,20 +150,26 @@ model IncomeTag {
 }
 
 model Expense {
-  id          String   @id @default(cuid())
-  familyId    String   @map("family_id")
-  userId      String   @map("user_id")
-  amount      Decimal  @db.Decimal(10, 2)
-  description String?
-  category    String? // "food", "transport", "health", "education", etc
-  date        DateTime @default(now())
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(cuid())
+  familyId         String   @map("family_id")
+  userId           String   @map("user_id")
+  amount           Decimal  @db.Decimal(10, 2)
+  description      String?
+  category         String? // "food", "transport", "health", "education", etc
+  date             DateTime @default(now())
+  isRecurring      Boolean  @default(false) @map("is_recurring")
+  recurringType    String? @map("recurring_type") // "weekly", "biweekly", "monthly", "bimonthly", "quarterly", "semiannual", "annual"
+  recurringDay     Int? @map("recurring_day") // Day of month (1-31) or day of week (0-6 for weekly)
+  recurringEndDate DateTime? @map("recurring_end_date")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   family Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
   user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   tags   ExpenseTag[]
 
+  @@index([familyId, date])
+  @@index([isRecurring])
   @@map("expenses")
 }
 

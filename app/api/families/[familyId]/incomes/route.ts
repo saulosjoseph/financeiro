@@ -106,7 +106,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { amount, description, source, date, tagIds } = body;
+    const { amount, description, source, date, isRecurring, recurringType, recurringDay, recurringEndDate, tagIds } = body;
 
     if (!amount || amount <= 0) {
       return NextResponse.json(
@@ -123,6 +123,10 @@ export async function POST(
         description,
         source,
         date: date ? new Date(date) : new Date(),
+        isRecurring: isRecurring || false,
+        recurringType: isRecurring ? recurringType : null,
+        recurringDay: isRecurring && recurringDay !== undefined ? recurringDay : null,
+        recurringEndDate: isRecurring && recurringEndDate ? new Date(recurringEndDate) : null,
         tags: tagIds && Array.isArray(tagIds) && tagIds.length > 0 ? {
           create: tagIds.map((tagId: string) => ({
             tag: {

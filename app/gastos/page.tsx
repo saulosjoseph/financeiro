@@ -18,6 +18,11 @@ export default function ExpensesPage() {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringType, setRecurringType] = useState<string>('monthly');
+  const [recurringDay, setRecurringDay] = useState<number>(new Date().getDate());
+  const [recurringEndDate, setRecurringEndDate] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [showCreateTag, setShowCreateTag] = useState(false);
@@ -48,6 +53,11 @@ export default function ExpensesPage() {
           amount: parseFloat(amount),
           description,
           category,
+          date: new Date(date).toISOString(),
+          isRecurring,
+          recurringType: isRecurring ? recurringType : undefined,
+          recurringDay: isRecurring ? recurringDay : undefined,
+          recurringEndDate: isRecurring && recurringEndDate ? new Date(recurringEndDate).toISOString() : undefined,
           tagIds: selectedTags,
         }),
       });
@@ -56,6 +66,11 @@ export default function ExpensesPage() {
         setAmount('');
         setDescription('');
         setCategory('');
+        setDate(new Date().toISOString().split('T')[0]);
+        setIsRecurring(false);
+        setRecurringType('monthly');
+        setRecurringDay(new Date().getDate());
+        setRecurringEndDate('');
         setSelectedTags([]);
         mutateExpenses();
         alert('Gasto adicionado com sucesso!');
@@ -215,6 +230,87 @@ export default function ExpensesPage() {
                 className="px-3 py-2 text-sm border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
               />
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-700 dark:text-gray-300 mb-1 block">
+                  Data
+                </label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 text-sm border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                />
+              </div>
+              <div className="flex items-end">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isRecurring}
+                    onChange={(e) => setIsRecurring(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    Gasto Recorrente
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {isRecurring && (
+              <div className="bg-red-100 dark:bg-red-900 p-3 rounded border border-red-200 dark:border-red-800 space-y-3">
+                <h4 className="text-sm font-medium text-red-900 dark:text-red-100">
+                  Configuração de Recorrência
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-700 dark:text-gray-300 mb-1 block">
+                      Tipo de Recorrência
+                    </label>
+                    <select
+                      value={recurringType}
+                      onChange={(e) => setRecurringType(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                    >
+                      <option value="weekly">Semanal</option>
+                      <option value="biweekly">Quinzenal</option>
+                      <option value="monthly">Mensal</option>
+                      <option value="bimonthly">Bimestral</option>
+                      <option value="quarterly">Trimestral</option>
+                      <option value="semiannual">Semestral</option>
+                      <option value="annual">Anual</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-700 dark:text-gray-300 mb-1 block">
+                      {recurringType === 'weekly' ? 'Dia da Semana (0-6)' : 'Dia do Mês (1-31)'}
+                    </label>
+                    <input
+                      type="number"
+                      min={recurringType === 'weekly' ? 0 : 1}
+                      max={recurringType === 'weekly' ? 6 : 31}
+                      value={recurringDay}
+                      onChange={(e) => setRecurringDay(parseInt(e.target.value))}
+                      className="w-full px-3 py-2 text-sm border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-700 dark:text-gray-300 mb-1 block">
+                    Data de Término (opcional)
+                  </label>
+                  <input
+                    type="date"
+                    value={recurringEndDate}
+                    onChange={(e) => setRecurringEndDate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                  />
+                </div>
+              </div>
+            )}
+
             <input
               type="text"
               placeholder="Descrição (opcional)"
