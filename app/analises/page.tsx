@@ -230,27 +230,6 @@ function AnalysesContent() {
             </p>
           </div>
 
-          {/* Current Period Summary */}
-          {currentPeriodAnalysis && (
-            <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6 rounded-lg text-white">
-              <p className="text-sm opacity-90">Período Atual ({currentPeriodAnalysis.period})</p>
-              <div className="grid grid-cols-3 gap-4 mt-4">
-                <div>
-                  <p className="text-xs opacity-75">Rendas</p>
-                  <p className="text-xl font-bold">{formatCurrency(currentPeriodAnalysis.totalIncome)}</p>
-                </div>
-                <div>
-                  <p className="text-xs opacity-75">Gastos</p>
-                  <p className="text-xl font-bold">{formatCurrency(currentPeriodAnalysis.totalExpense)}</p>
-                </div>
-                <div>
-                  <p className="text-xs opacity-75">Saldo</p>
-                  <p className="text-xl font-bold">{formatCurrency(currentPeriodAnalysis.balance)}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Period Selector */}
           <div>
             <h3 className="font-medium text-base text-black dark:text-zinc-50 mb-3">
