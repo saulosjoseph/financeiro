@@ -204,24 +204,24 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-4xl flex-col py-16 px-8 bg-white dark:bg-black">
-        <div className="flex flex-col gap-6 w-full">
+    <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
+      <main className="flex min-h-screen w-full max-w-4xl flex-col py-4 sm:py-16 px-4 sm:px-8 bg-white dark:bg-black mx-auto">
+        <div className="flex flex-col gap-4 sm:gap-6 w-full">
           {/* Header */}
-          <div className="flex justify-between items-center border-b pb-4">
-            <h1 className="text-3xl font-semibold text-black dark:text-zinc-50">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-3">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
               💰 Financeiro Familiar
             </h1>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               {session.user?.image && (
                 <img
                   src={session.user.image}
                   alt={session.user.name || 'User'}
-                  className="w-10 h-10 rounded-full"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full"
                 />
               )}
-              <div className="text-right">
-                <p className="text-sm font-medium text-black dark:text-white">
+              <div className="text-left sm:text-right">
+                <p className="text-xs sm:text-sm font-medium text-black dark:text-white">
                   {session.user?.name}
                 </p>
                 <button
@@ -235,21 +235,21 @@ export default function Home() {
           </div>
 
           {/* Criar Família */}
-          <form onSubmit={handleCreateFamily} className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-            <h3 className="font-medium text-black dark:text-zinc-50 mb-3">Criar Nova Família</h3>
-            <div className="flex gap-2">
+          <form onSubmit={handleCreateFamily} className="bg-blue-50 dark:bg-blue-950 p-3 sm:p-4 rounded-lg">
+            <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50 mb-3">Criar Nova Família</h3>
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 placeholder="Nome da família"
                 value={familyName}
                 onChange={(e) => setFamilyName(e.target.value)}
                 required
-                className="flex-1 px-3 py-2 border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                className="flex-1 px-3 py-2 text-sm sm:text-base border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
               />
               <button
                 type="submit"
                 disabled={isCreatingFamily}
-                className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+                className="px-4 sm:px-6 py-2 text-sm sm:text-base bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 whitespace-nowrap"
               >
                 {isCreatingFamily ? 'Criando...' : 'Criar'}
               </button>
@@ -257,22 +257,22 @@ export default function Home() {
           </form>
 
           {/* Lista de Famílias */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
             {Array.isArray(families) && families.map((family) => (
               <button
                 key={family.id}
                 onClick={() => setSelectedFamily(family.id)}
-                className={`p-4 rounded-lg border-2 text-left transition-colors ${
+                className={`p-3 sm:p-4 rounded-lg border-2 text-left transition-colors ${
                   selectedFamily === family.id
                     ? 'border-blue-600 bg-blue-50 dark:bg-blue-950'
                     : 'border-gray-200 dark:border-gray-700 hover:border-blue-400'
                 }`}
               >
-                <h3 className="font-semibold text-lg text-black dark:text-white">{family.name}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <h3 className="font-semibold text-base sm:text-lg text-black dark:text-white">{family.name}</h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
                   {family.members.length} membro(s)
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                   {family._count.incomes} renda(s)
                 </p>
               </button>
@@ -286,40 +286,40 @@ export default function Home() {
 
           {/* Detalhes da Família Selecionada */}
           {selectedFamily && currentFamily && (
-            <div className="border-t pt-6 space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-semibold text-black dark:text-white">
+            <div className="border-t pt-4 sm:pt-6 space-y-4 sm:space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <h2 className="text-xl sm:text-2xl font-semibold text-black dark:text-white">
                   {currentFamily.name}
                 </h2>
                 {isAdmin && (
                   <button
                     onClick={() => setShowAddMember(!showAddMember)}
-                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                    className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-green-600 text-white rounded hover:bg-green-700 whitespace-nowrap"
                   >
-                    {showAddMember ? 'Cancelar' : 'Adicionar Membro'}
+                    {showAddMember ? 'Cancelar' : '+ Adicionar Membro'}
                   </button>
                 )}
               </div>
 
               {/* Formulário Adicionar Membro */}
               {showAddMember && (
-                <form onSubmit={handleAddMember} className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
-                  <h3 className="font-medium text-black dark:text-zinc-50 mb-3">
+                <form onSubmit={handleAddMember} className="bg-green-50 dark:bg-green-950 p-3 sm:p-4 rounded-lg">
+                  <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50 mb-3">
                     Adicionar Membro por Email
                   </h3>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="email"
                       placeholder="email@exemplo.com"
                       value={memberEmail}
                       onChange={(e) => setMemberEmail(e.target.value)}
                       required
-                      className="flex-1 px-3 py-2 border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                      className="flex-1 px-3 py-2 text-sm sm:text-base border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
                     />
                     <button
                       type="submit"
                       disabled={isAddingMember}
-                      className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
+                      className="px-4 sm:px-6 py-2 text-sm sm:text-base bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 whitespace-nowrap"
                     >
                       {isAddingMember ? 'Adicionando...' : 'Adicionar'}
                     </button>
@@ -329,30 +329,30 @@ export default function Home() {
 
               {/* Membros */}
               <div>
-                <h3 className="font-medium text-black dark:text-zinc-50 mb-3">Membros</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50 mb-3">Membros</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                   {currentFamily.members.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded"
+                      className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-gray-50 dark:bg-gray-900 rounded"
                     >
                       {member.user.image && (
                         <img
                           src={member.user.image}
                           alt={member.user.name || ''}
-                          className="w-10 h-10 rounded-full"
+                          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex-shrink-0"
                         />
                       )}
-                      <div className="flex-1">
-                        <p className="font-medium text-black dark:text-white">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm sm:text-base text-black dark:text-white truncate">
                           {member.user.name || 'Sem nome'}
                           {member.role === 'admin' && (
-                            <span className="ml-2 text-xs bg-blue-600 text-white px-2 py-1 rounded">
+                            <span className="ml-1 sm:ml-2 text-xs bg-blue-600 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
                               Admin
                             </span>
                           )}
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                           {member.user.email}
                         </p>
                       </div>
@@ -362,9 +362,9 @@ export default function Home() {
               </div>
 
               {/* Adicionar Renda */}
-              <form onSubmit={handleAddIncome} className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg space-y-3">
-                <h3 className="font-medium text-black dark:text-zinc-50">Adicionar Renda</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <form onSubmit={handleAddIncome} className="bg-purple-50 dark:bg-purple-950 p-3 sm:p-4 rounded-lg space-y-3">
+                <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50">Adicionar Renda</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input
                     type="number"
                     step="0.01"
@@ -372,14 +372,14 @@ export default function Home() {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     required
-                    className="px-3 py-2 border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                    className="px-3 py-2 text-sm sm:text-base border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
                   />
                   <input
                     type="text"
                     placeholder="Origem (ex: Salário)"
                     value={source}
                     onChange={(e) => setSource(e.target.value)}
-                    className="px-3 py-2 border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                    className="px-3 py-2 text-sm sm:text-base border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
                   />
                 </div>
                 <input
@@ -387,60 +387,60 @@ export default function Home() {
                   placeholder="Descrição (opcional)"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-2 border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                  className="w-full px-3 py-2 text-sm sm:text-base border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
                 />
                 <button
                   type="submit"
                   disabled={isAddingIncome}
-                  className="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:bg-gray-400"
+                  className="w-full px-4 py-2 text-sm sm:text-base bg-purple-600 text-white rounded hover:bg-purple-700 disabled:bg-gray-400"
                 >
                   {isAddingIncome ? 'Adicionando...' : 'Adicionar Renda'}
                 </button>
               </form>
 
               {/* Renda Total */}
-              <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 rounded-lg text-white">
-                <p className="text-sm opacity-90">Renda Familiar Total</p>
-                <p className="text-4xl font-bold mt-2">
+              <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-4 sm:p-6 rounded-lg text-white">
+                <p className="text-xs sm:text-sm opacity-90">Renda Familiar Total</p>
+                <p className="text-2xl sm:text-4xl font-bold mt-1 sm:mt-2">
                   R$ {getTotalIncome().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
 
               {/* Lista de Rendas */}
               <div>
-                <h3 className="font-medium text-black dark:text-zinc-50 mb-3">Rendas Registradas</h3>
-                <div className="space-y-3">
+                <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50 mb-3">Rendas Registradas</h3>
+                <div className="space-y-2 sm:space-y-3">
                   {Array.isArray(incomes) && incomes.map((income) => (
                     <div
                       key={income.id}
-                      className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg"
+                      className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-900 rounded-lg"
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+                        <div className="flex-1 w-full">
+                          <div className="flex items-center gap-2 sm:gap-3">
                             {income.user.image && (
                               <img
                                 src={income.user.image}
                                 alt={income.user.name || ''}
-                                className="w-8 h-8 rounded-full"
+                                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex-shrink-0"
                               />
                             )}
-                            <div>
-                              <p className="font-semibold text-lg text-black dark:text-white">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-base sm:text-lg text-black dark:text-white">
                                 R$ {parseFloat(income.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                                 {income.user.name} • {income.source || 'Sem origem'}
                               </p>
                             </div>
                           </div>
                           {income.description && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2 ml-10 sm:ml-12">
                               {income.description}
                             </p>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-500 ml-10 sm:ml-0 whitespace-nowrap">
                           {new Date(income.date).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
