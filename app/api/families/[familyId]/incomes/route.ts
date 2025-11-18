@@ -49,6 +49,11 @@ export async function GET(
             image: true,
           },
         },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
       },
       orderBy: {
         date: 'desc',
@@ -101,7 +106,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { amount, description, source, date } = body;
+    const { amount, description, source, date, tagIds } = body;
 
     if (!amount || amount <= 0) {
       return NextResponse.json(
@@ -118,6 +123,13 @@ export async function POST(
         description,
         source,
         date: date ? new Date(date) : new Date(),
+        tags: tagIds && Array.isArray(tagIds) && tagIds.length > 0 ? {
+          create: tagIds.map((tagId: string) => ({
+            tag: {
+              connect: { id: tagId },
+            },
+          })),
+        } : undefined,
       },
       include: {
         user: {
@@ -126,6 +138,11 @@ export async function POST(
             name: true,
             email: true,
             image: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: true,
           },
         },
       },

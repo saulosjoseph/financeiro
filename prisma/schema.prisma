@@ -38,8 +38,23 @@ model Family {
 
   members FamilyMember[]
   incomes Income[]
+  tags    Tag[]
 
   @@map("families")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#6B7280") // hex color
+  familyId  String   @map("family_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  family  Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  incomes IncomeTag[]
+
+  @@unique([familyId, name])
+  @@map("tags")
 }
 
 model FamilyMember {
@@ -67,10 +82,23 @@ model Income {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags   IncomeTag[]
 
   @@map("incomes")
+}
+
+model IncomeTag {
+  id       String @id @default(cuid())
+  incomeId String @map("income_id")
+  tagId    String @map("tag_id")
+
+  income Income @relation(fields: [incomeId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([incomeId, tagId])
+  @@map("income_tags")
 }
 
 model Account {

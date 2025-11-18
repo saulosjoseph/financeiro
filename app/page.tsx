@@ -26,6 +26,18 @@ interface Family {
   };
 }
 
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  familyId: string;
+}
+
+interface IncomeTag {
+  id: string;
+  tag: Tag;
+}
+
 interface Income {
   id: string;
   amount: string;
@@ -33,6 +45,7 @@ interface Income {
   source: string | null;
   date: string;
   user: User;
+  tags: IncomeTag[];
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -45,6 +58,10 @@ export default function Home() {
     selectedFamily ? `/api/families/${selectedFamily}/incomes` : null,
     fetcher
   );
+  const { data: tags, mutate: mutateTags } = useSWR<Tag[]>(
+    selectedFamily ? `/api/families/${selectedFamily}/tags` : null,
+    fetcher
+  );
 
   // Estados para criar família
   const [familyName, setFamilyName] = useState('');
@@ -54,12 +71,19 @@ export default function Home() {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [source, setSource] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isAddingIncome, setIsAddingIncome] = useState(false);
 
   // Estados para adicionar membro
   const [memberEmail, setMemberEmail] = useState('');
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
+
+  // Estados para criar tag
+  const [tagName, setTagName] = useState('');
+  const [tagColor, setTagColor] = useState('#6B7280');
+  const [isCreatingTag, setIsCreatingTag] = useState(false);
+  const [showCreateTag, setShowCreateTag] = useState(false);
 
   const handleCreateFamily = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +123,7 @@ export default function Home() {
           amount: parseFloat(amount),
           description,
           source,
+          tagIds: selectedTags,
         }),
       });
 
@@ -106,6 +131,7 @@ export default function Home() {
         setAmount('');
         setDescription('');
         setSource('');
+        setSelectedTags([]);
         mutateIncomes();
         mutateFamilies();
       } else {
@@ -144,6 +170,40 @@ export default function Home() {
     } finally {
       setIsAddingMember(false);
     }
+  };
+
+  const handleCreateTag = async () => {
+    if (!tagName.trim() || !selectedFamily) return;
+    setIsCreatingTag(true);
+
+    try {
+      const response = await fetch(`/api/families/${selectedFamily}/tags`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: tagName, color: tagColor }),
+      });
+
+      if (response.ok) {
+        setTagName('');
+        setTagColor('#6B7280');
+        setShowCreateTag(false);
+        mutateTags();
+        alert('Tag criada com sucesso!');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao criar tag');
+      }
+    } catch (error) {
+      alert('Erro ao criar tag');
+    } finally {
+      setIsCreatingTag(false);
+    }
+  };
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
+    );
   };
 
   const getTotalIncome = () => {
@@ -363,7 +423,75 @@ export default function Home() {
 
               {/* Adicionar Renda */}
               <form onSubmit={handleAddIncome} className="bg-purple-50 dark:bg-purple-950 p-3 sm:p-4 rounded-lg space-y-3">
-                <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50">Adicionar Renda</h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50">Adicionar Renda</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateTag(!showCreateTag)}
+                    className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 hover:underline"
+                  >
+                    {showCreateTag ? 'Cancelar' : '+ Nova Tag'}
+                  </button>
+                </div>
+
+                {/* Formulário criar tag */}
+                {showCreateTag && (
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded border border-purple-200 dark:border-purple-800">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        placeholder="Nome da tag"
+                        value={tagName}
+                        onChange={(e) => setTagName(e.target.value)}
+                        className="flex-1 px-2 py-1.5 text-xs sm:text-sm border rounded bg-white dark:bg-gray-700 text-black dark:text-white"
+                      />
+                      <input
+                        type="color"
+                        value={tagColor}
+                        onChange={(e) => setTagColor(e.target.value)}
+                        className="w-16 h-8 border rounded cursor-pointer"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCreateTag}
+                        disabled={isCreatingTag || !tagName.trim()}
+                        className="px-3 py-1.5 text-xs sm:text-sm bg-purple-600 text-white rounded hover:bg-purple-700 disabled:bg-gray-400 whitespace-nowrap"
+                      >
+                        {isCreatingTag ? 'Criando...' : 'Criar'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Seletor de tags */}
+                {Array.isArray(tags) && tags.length > 0 && (
+                  <div>
+                    <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mb-2 block">
+                      Tags (opcional)
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => toggleTag(tag.id)}
+                          className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-full border-2 transition-all ${
+                            selectedTags.includes(tag.id)
+                              ? 'border-current shadow-md scale-105'
+                              : 'border-transparent opacity-70 hover:opacity-100'
+                          }`}
+                          style={{
+                            backgroundColor: tag.color,
+                            color: '#fff',
+                          }}
+                        >
+                          {tag.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input
                     type="number"
@@ -432,6 +560,20 @@ export default function Home() {
                               <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                                 {income.user.name} • {income.source || 'Sem origem'}
                               </p>
+                              {/* Tags da renda */}
+                              {income.tags && income.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {income.tags.map((incomeTag) => (
+                                    <span
+                                      key={incomeTag.id}
+                                      className="px-2 py-0.5 text-xs rounded-full text-white"
+                                      style={{ backgroundColor: incomeTag.tag.color }}
+                                    >
+                                      {incomeTag.tag.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                           {income.description && (
