@@ -164,3 +164,158 @@ export async function POST(
     );
   }
 }
+
+// PUT - Atualizar renda
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ familyId: string }> }
+) {
+  try {
+    const session = await auth();
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { familyId } = await params;
+
+    // Verificar se o usuário é membro da família
+    const member = await prisma.familyMember.findUnique({
+      where: {
+        familyId_userId: {
+          familyId,
+          userId: session.user.id,
+        },
+      },
+    });
+
+    if (!member) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { id, amount, description, source, date, tagIds } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Income ID is required' }, { status: 400 });
+    }
+
+    // Verificar se a renda pertence à família
+    const existingIncome = await prisma.income.findUnique({
+      where: { id },
+    });
+
+    if (!existingIncome || existingIncome.familyId !== familyId) {
+      return NextResponse.json({ error: 'Income not found' }, { status: 404 });
+    }
+
+    // Remover tags antigas
+    await prisma.incomeTag.deleteMany({
+      where: { incomeId: id },
+    });
+
+    // Atualizar renda
+    const income = await prisma.income.update({
+      where: { id },
+      data: {
+        amount,
+        description,
+        source,
+        date: date ? new Date(date) : undefined,
+        tags: tagIds && Array.isArray(tagIds) && tagIds.length > 0 ? {
+          create: tagIds.map((tagId: string) => ({
+            tag: {
+              connect: { id: tagId },
+            },
+          })),
+        } : undefined,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(income);
+  } catch (error) {
+    console.error('Error updating income:', error);
+    return NextResponse.json(
+      { error: 'Failed to update income', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Excluir renda
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ familyId: string }> }
+) {
+  try {
+    const session = await auth();
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { familyId } = await params;
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Income ID is required' }, { status: 400 });
+    }
+
+    // Verificar se o usuário é membro da família
+    const member = await prisma.familyMember.findUnique({
+      where: {
+        familyId_userId: {
+          familyId,
+          userId: session.user.id,
+        },
+      },
+    });
+
+    if (!member) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Verificar se a renda pertence à família
+    const existingIncome = await prisma.income.findUnique({
+      where: { id },
+    });
+
+    if (!existingIncome || existingIncome.familyId !== familyId) {
+      return NextResponse.json({ error: 'Income not found' }, { status: 404 });
+    }
+
+    // Excluir tags associadas
+    await prisma.incomeTag.deleteMany({
+      where: { incomeId: id },
+    });
+
+    // Excluir renda
+    await prisma.income.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ message: 'Income deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting income:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete income', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
