@@ -24,6 +24,18 @@ function AnalysesContent() {
   const familyId = searchParams.get('family');
 
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('monthly');
+  
+  // Inicializar datas: primeiro dia do mês até hoje
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    return firstDay.toISOString().split('T')[0];
+  });
+  
+  const [endDate, setEndDate] = useState(() => {
+    const now = new Date();
+    return now.toISOString().split('T')[0];
+  });
 
   const { selectedFamily } = useFamily(familyId);
   const { incomes, totalIncome } = useIncomes(familyId);
@@ -35,14 +47,41 @@ function AnalysesContent() {
     }
   }, [familyId, router]);
 
+  // Filtrar rendas e gastos por data
+  const filteredIncomes = useMemo(() => {
+    if (!incomes) return [];
+    return incomes.filter(income => {
+      const incomeDate = new Date(income.date);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // Incluir o dia inteiro
+      return incomeDate >= start && incomeDate <= end;
+    });
+  }, [incomes, startDate, endDate]);
+
+  const filteredExpenses = useMemo(() => {
+    if (!expenses) return [];
+    return expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // Incluir o dia inteiro
+      return expenseDate >= start && expenseDate <= end;
+    });
+  }, [expenses, startDate, endDate]);
+
+  const filteredTotalIncome = filteredIncomes.reduce((sum, income) => sum + parseFloat(income.amount), 0);
+  const filteredTotalExpense = filteredExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+  const filteredBalance = filteredTotalIncome - filteredTotalExpense;
+
   const analyses = useMemo(() => {
-    if (!incomes || !expenses) return [];
+    if (!filteredIncomes || !filteredExpenses) return [];
 
     const periods = getMultiplePeriods(selectedPeriod, 6);
     return periods.map(({ range, label }) =>
-      calculatePeriodAnalysis(incomes, expenses, range, label)
+      calculatePeriodAnalysis(filteredIncomes, filteredExpenses, range, label)
     );
-  }, [incomes, expenses, selectedPeriod]);
+  }, [filteredIncomes, filteredExpenses, selectedPeriod]);
 
   const currentPeriodAnalysis = analyses.length > 0 ? analyses[analyses.length - 1] : null;
   const balance = totalIncome - totalExpense;
@@ -91,20 +130,104 @@ function AnalysesContent() {
           {/* Overall Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatsCard
-              title="Total de Rendas"
-              value={totalIncome}
+              title="Rendas no Período"
+              value={filteredTotalIncome}
               gradient="from-green-500 to-emerald-600"
             />
             <StatsCard
-              title="Total de Gastos"
-              value={totalExpense}
+              title="Gastos no Período"
+              value={filteredTotalExpense}
               gradient="from-red-500 to-rose-600"
             />
             <StatsCard
-              title="Saldo Total"
-              value={balance}
-              gradient={balance >= 0 ? 'from-blue-500 to-indigo-600' : 'from-orange-500 to-amber-600'}
+              title="Saldo do Período"
+              value={filteredBalance}
+              gradient={filteredBalance >= 0 ? 'from-blue-500 to-indigo-600' : 'from-orange-500 to-amber-600'}
             />
+          </div>
+
+          {/* Date Range Selector */}
+          <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-900">
+            <h3 className="font-medium text-base text-black dark:text-zinc-50 mb-3">
+              Período do Relatório
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-gray-700 dark:text-gray-300 mb-1 block">
+                  Data Inicial
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  max={endDate}
+                  className="w-full px-3 py-2 text-sm border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-700 dark:text-gray-300 mb-1 block">
+                  Data Final
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate}
+                  className="w-full px-3 py-2 text-sm border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                />
+              </div>
+            </div>
+            <div className="mt-3 flex gap-2 flex-wrap">
+              <button
+                onClick={() => {
+                  const now = new Date();
+                  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                  setStartDate(firstDay.toISOString().split('T')[0]);
+                  setEndDate(now.toISOString().split('T')[0]);
+                }}
+                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Mês Atual
+              </button>
+              <button
+                onClick={() => {
+                  const now = new Date();
+                  const firstDay = new Date(now.getFullYear(), 0, 1);
+                  setStartDate(firstDay.toISOString().split('T')[0]);
+                  setEndDate(now.toISOString().split('T')[0]);
+                }}
+                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Ano Atual
+              </button>
+              <button
+                onClick={() => {
+                  const now = new Date();
+                  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                  const lastDayOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+                  setStartDate(lastMonth.toISOString().split('T')[0]);
+                  setEndDate(lastDayOfLastMonth.toISOString().split('T')[0]);
+                }}
+                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Mês Passado
+              </button>
+              <button
+                onClick={() => {
+                  const now = new Date();
+                  const thirtyDaysAgo = new Date(now);
+                  thirtyDaysAgo.setDate(now.getDate() - 30);
+                  setStartDate(thirtyDaysAgo.toISOString().split('T')[0]);
+                  setEndDate(now.toISOString().split('T')[0]);
+                }}
+                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Últimos 30 Dias
+              </button>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+              Exibindo dados de {new Date(startDate).toLocaleDateString('pt-BR')} até {new Date(endDate).toLocaleDateString('pt-BR')}
+            </p>
           </div>
 
           {/* Current Period Summary */}
