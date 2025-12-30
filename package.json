@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && (prisma migrate resolve --applied 20251118155403_add_recurring_fields || true) && (prisma migrate resolve --rolled-back 20251230_rename_income_expense_to_entrada_saida || true) && prisma migrate deploy && next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
