@@ -1,5 +1,5 @@
-import { Income } from '@/lib/hooks/useIncomes';
-import { Expense } from '@/lib/hooks/useExpenses';
+import { Entrada } from '@/lib/hooks/useEntradas';
+import { Saida } from '@/lib/hooks/useSaidas';
 
 export type PeriodType = 'weekly' | 'biweekly' | 'monthly' | 'bimonthly' | 'quarterly' | 'semiannual' | 'annual';
 
@@ -103,16 +103,16 @@ export function filterByDateRange<T extends { date: string }>(
 
 // Calculate analysis for a period
 export function calculatePeriodAnalysis(
-  incomes: Income[],
-  expenses: Expense[],
+  incomes: Entrada[],
+  expenses: Saida[],
   range: DateRange,
   periodLabel: string
 ): PeriodAnalysis {
   const filteredIncomes = filterByDateRange(incomes, range);
   const filteredExpenses = filterByDateRange(expenses, range);
 
-  const totalIncome = filteredIncomes.reduce((sum, income) => sum + parseFloat(income.amount), 0);
-  const totalExpense = filteredExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+  const totalIncome = filteredIncomes.reduce((sum, entrada) => sum + parseFloat(entrada.amount), 0);
+  const totalExpense = filteredExpenses.reduce((sum, saida) => sum + parseFloat(saida.amount), 0);
 
   return {
     period: periodLabel,
