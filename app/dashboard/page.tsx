@@ -521,6 +521,11 @@ export default function Dashboard() {
                   title={periodo === 'mes' ? 'Saldo do Mês' : periodo === 'ano' ? 'Saldo do Ano' : 'Saldo Total'}
                   value={balance}
                   gradient={balance >= 0 ? 'from-blue-500 to-indigo-600' : 'from-orange-500 to-amber-600'}
+                  breakdown={periodo === 'geral' && initialBalance !== 0 ? [
+                    { label: 'Saldo Inicial', value: initialBalance },
+                    { label: 'Entradas', value: totalEntrada },
+                    { label: 'Saídas', value: -totalSaida },
+                  ] : undefined}
                 />
               </div>
 
