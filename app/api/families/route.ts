@@ -36,7 +36,8 @@ export async function GET() {
         },
         _count: {
           select: {
-            incomes: true,
+            entradas: true,
+            saidas: true,
           },
         },
       },

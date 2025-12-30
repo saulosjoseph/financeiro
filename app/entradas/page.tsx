@@ -3,14 +3,15 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useIncomes } from '@/lib/hooks/useIncomes';
+import { useEntradas, PeriodType } from '@/lib/hooks/useEntradas';
 import { useTags } from '@/lib/hooks/useTags';
 import { useFamily } from '@/lib/hooks/useFamily';
 import TagSelector from '@/components/TagSelector';
+import PeriodToggle from '@/components/PeriodToggle';
 import Link from 'next/link';
 import { formatCurrency, parseCurrency } from '@/lib/utils/currencyMask';
 
-function IncomesContent() {
+function EntradasContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -25,14 +26,26 @@ function IncomesContent() {
   const [recurringDay, setRecurringDay] = useState<number>(new Date().getDate());
   const [recurringEndDate, setRecurringEndDate] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [isAddingIncome, setIsAddingIncome] = useState(false);
+  const [isAddingEntrada, setIsAddingEntrada] = useState(false);
   const [showCreateTag, setShowCreateTag] = useState(false);
   const [tagName, setTagName] = useState('');
   const [tagColor, setTagColor] = useState('#6B7280');
   const [isCreatingTag, setIsCreatingTag] = useState(false);
+  const [periodo, setPeriodo] = useState<PeriodType>('mes');
 
   const { selectedFamily } = useFamily(familyId);
-  const { incomes, totalIncome, mutate: mutateIncomes } = useIncomes(familyId);
+  const { 
+    entradas, 
+    totalMes, 
+    totalAno, 
+    totalGeral, 
+    countMes, 
+    countAno, 
+    countGeral, 
+    getPeriodLabel, 
+    getFilteredData, 
+    mutate: mutateEntradas 
+  } = useEntradas(familyId);
   const { tags, mutate: mutateTags } = useTags(familyId);
 
   useEffect(() => {
@@ -46,13 +59,13 @@ function IncomesContent() {
     setAmount(formatted);
   };
 
-  const handleAddIncome = async (e: React.FormEvent) => {
+  const handleAddEntrada = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !familyId) return;
-    setIsAddingIncome(true);
+    setIsAddingEntrada(true);
 
     try {
-      const response = await fetch(`/api/families/${familyId}/incomes`, {
+      const response = await fetch(`/api/families/${familyId}/entradas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -78,15 +91,15 @@ function IncomesContent() {
         setRecurringDay(new Date().getDate());
         setRecurringEndDate('');
         setSelectedTags([]);
-        mutateIncomes();
-        alert('Renda adicionada com sucesso!');
+        mutateEntradas();
+        alert('Entrada adicionada com sucesso!');
       } else {
-        alert('Erro ao adicionar renda');
+        alert('Erro ao adicionar entrada');
       }
     } catch (error) {
-      alert('Erro ao adicionar renda');
+      alert('Erro ao adicionar entrada');
     } finally {
-      setIsAddingIncome(false);
+      setIsAddingEntrada(false);
     }
   };
 
@@ -137,6 +150,21 @@ function IncomesContent() {
     return null;
   }
 
+  const getTotalByPeriod = () => {
+    return periodo === 'mes' ? totalMes : periodo === 'ano' ? totalAno : totalGeral;
+  };
+
+  const getPeriodTitle = () => {
+    return periodo === 'mes' ? 'Entrada Familiar do Mês' : periodo === 'ano' ? 'Entrada Familiar do Ano' : 'Entrada Familiar Total';
+  };
+
+  const getEmptyMessage = () => {
+    if (periodo === 'geral') return 'Nenhuma entrada registrada ainda';
+    return `Nenhuma entrada registrada em ${getPeriodLabel(periodo)}`;
+  };
+
+  const filteredEntradas = getFilteredData(periodo);
+
   return (
     <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
       <main className="flex min-h-screen w-full max-w-4xl flex-col py-4 sm:py-16 px-4 sm:px-8 bg-white dark:bg-black mx-auto">
@@ -151,7 +179,7 @@ function IncomesContent() {
                 ← Voltar ao Dashboard
               </Link>
               <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
-                💵 Rendas {selectedFamily && `- ${selectedFamily.name}`}
+                💵 Entradas {selectedFamily && `- ${selectedFamily.name}`}
               </h1>
             </div>
             <div className="flex items-center gap-3">
@@ -165,18 +193,30 @@ function IncomesContent() {
             </div>
           </div>
 
-          {/* Total Income Card */}
-          <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 rounded-lg text-white">
-            <p className="text-sm opacity-90">Renda Familiar Total</p>
-            <p className="text-4xl font-bold mt-2">
-              R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
+          {/* Period Toggle */}
+          <div className="flex justify-center">
+            <PeriodToggle
+              selectedPeriod={periodo}
+              onPeriodChange={setPeriodo}
+              countMes={countMes}
+              countAno={countAno}
+              countGeral={countGeral}
+            />
           </div>
 
-          {/* Add Income Form */}
-          <form onSubmit={handleAddIncome} className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg space-y-4">
+          {/* Total Card */}
+          <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 rounded-lg text-white">
+            <p className="text-sm opacity-90">{getPeriodTitle()}</p>
+            <p className="text-4xl font-bold mt-2 transition-all duration-300 ease-in-out">
+              R$ {getTotalByPeriod().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs opacity-75 mt-1">{getPeriodLabel(periodo)}</p>
+          </div>
+
+          {/* Add Form */}
+          <form onSubmit={handleAddEntrada} className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-medium text-base text-black dark:text-zinc-50">Adicionar Nova Renda</h3>
+              <h3 className="font-medium text-base text-black dark:text-zinc-50">Adicionar Nova Entrada</h3>
               <button
                 type="button"
                 onClick={() => setShowCreateTag(!showCreateTag)}
@@ -186,7 +226,6 @@ function IncomesContent() {
               </button>
             </div>
 
-            {/* Create Tag Form */}
             {showCreateTag && (
               <div className="bg-white dark:bg-gray-800 p-3 rounded border border-purple-200 dark:border-purple-800">
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -215,7 +254,6 @@ function IncomesContent() {
               </div>
             )}
 
-            {/* Tag Selector */}
             <TagSelector tags={tags} selectedTags={selectedTags} onToggleTag={toggleTag} />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -259,7 +297,7 @@ function IncomesContent() {
                     className="w-4 h-4"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">
-                    Renda Recorrente
+                    Entrada Recorrente
                   </span>
                 </label>
               </div>
@@ -326,73 +364,72 @@ function IncomesContent() {
             />
             <button
               type="submit"
-              disabled={isAddingIncome}
+              disabled={isAddingEntrada}
               className="w-full px-4 py-3 text-base bg-purple-600 text-white rounded hover:bg-purple-700 disabled:bg-gray-400 font-medium"
             >
-              {isAddingIncome ? 'Adicionando...' : '+ Adicionar Renda'}
+              {isAddingEntrada ? 'Adicionando...' : '+ Adicionar Entrada'}
             </button>
           </form>
 
-          {/* Incomes List */}
+          {/* List */}
           <div>
             <h3 className="font-medium text-base text-black dark:text-zinc-50 mb-3">
-              Histórico de Rendas
+              Histórico de Entradas
             </h3>
             <div className="space-y-3">
-              {incomes && incomes.length > 0 ? (
-                incomes.map((income) => (
+              {filteredEntradas && filteredEntradas.length > 0 ? (
+                filteredEntradas.map((entrada) => (
                   <div
-                    key={income.id}
+                    key={entrada.id}
                     className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800"
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                       <div className="flex-1 w-full">
                         <div className="flex items-center gap-3">
-                          {income.user.image && (
+                          {entrada.user.image && (
                             <img
-                              src={income.user.image}
-                              alt={income.user.name || ''}
+                              src={entrada.user.image}
+                              alt={entrada.user.name || ''}
                               className="w-10 h-10 rounded-full flex-shrink-0"
                             />
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-lg text-green-600 dark:text-green-400">
-                              R$ {parseFloat(income.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              R$ {parseFloat(entrada.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                              {income.user.name} • {income.source || 'Sem origem'}
+                              {entrada.user.name} • {entrada.source || 'Sem origem'}
                             </p>
-                            {/* Tags */}
-                            {income.tags && income.tags.length > 0 && (
+                            {entrada.tags && entrada.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-2">
-                                {income.tags.map((incomeTag) => (
+                                {entrada.tags.map((entradaTag) => (
                                   <span
-                                    key={incomeTag.id}
+                                    key={entradaTag.id}
                                     className="px-2 py-0.5 text-xs rounded-full text-white"
-                                    style={{ backgroundColor: incomeTag.tag.color }}
+                                    style={{ backgroundColor: entradaTag.tag.color }}
                                   >
-                                    {incomeTag.tag.name}
+                                    {entradaTag.tag.name}
                                   </span>
                                 ))}
                               </div>
                             )}
                           </div>
                         </div>
-                        {income.description && (
+                        {entrada.description && (
                           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 ml-13">
-                            {income.description}
+                            {entrada.description}
                           </p>
                         )}
                       </div>
                       <p className="text-xs text-gray-500 ml-13 sm:ml-0 whitespace-nowrap">
-                        {new Date(income.date).toLocaleDateString('pt-BR')}
+                        {new Date(entrada.date).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                   </div>
                 ))
               ) : (
                 <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                  Nenhuma renda registrada ainda
+                  {getEmptyMessage()}
                 </p>
               )}
             </div>
@@ -403,14 +440,14 @@ function IncomesContent() {
   );
 }
 
-export default function IncomesPage() {
+export default function EntradasPage() {
   return (
     <Suspense fallback={
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
         <p className="text-lg">Carregando...</p>
       </div>
     }>
-      <IncomesContent />
+      <EntradasContent />
     </Suspense>
   );
 }

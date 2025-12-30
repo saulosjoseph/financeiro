@@ -74,6 +74,42 @@ function AnalysesContent() {
   const filteredTotalExpense = filteredExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
   const filteredBalance = filteredTotalIncome - filteredTotalExpense;
 
+  // Preparar dados para o gráfico de linha
+  const lineChartData = useMemo(() => {
+    const dataByDate: { [key: string]: { income: number; expense: number } } = {};
+    
+    // Agrupar rendas por data
+    filteredIncomes.forEach(income => {
+      const dateKey = new Date(income.date).toLocaleDateString('pt-BR');
+      if (!dataByDate[dateKey]) {
+        dataByDate[dateKey] = { income: 0, expense: 0 };
+      }
+      dataByDate[dateKey].income += parseFloat(income.amount);
+    });
+    
+    // Agrupar gastos por data
+    filteredExpenses.forEach(expense => {
+      const dateKey = new Date(expense.date).toLocaleDateString('pt-BR');
+      if (!dataByDate[dateKey]) {
+        dataByDate[dateKey] = { income: 0, expense: 0 };
+      }
+      dataByDate[dateKey].expense += parseFloat(expense.amount);
+    });
+
+    // Ordenar por data
+    return Object.entries(dataByDate)
+      .sort((a, b) => {
+        const [dayA, monthA, yearA] = a[0].split('/').map(Number);
+        const [dayB, monthB, yearB] = b[0].split('/').map(Number);
+        return new Date(yearA, monthA - 1, dayA).getTime() - new Date(yearB, monthB - 1, dayB).getTime();
+      })
+      .map(([date, values]) => ({
+        date,
+        income: values.income,
+        expense: values.expense,
+      }));
+  }, [filteredIncomes, filteredExpenses]);
+
   const analyses = useMemo(() => {
     if (!filteredIncomes || !filteredExpenses) return [];
 
@@ -228,6 +264,144 @@ function AnalysesContent() {
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
               Exibindo dados de {new Date(startDate).toLocaleDateString('pt-BR')} até {new Date(endDate).toLocaleDateString('pt-BR')}
             </p>
+          </div>
+
+          {/* Gráfico de Linha */}
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-800">
+            <h3 className="font-medium text-lg text-black dark:text-zinc-50 mb-4">
+              📈 Evolução de Rendas e Gastos no Período
+            </h3>
+            {lineChartData.length > 0 ? (
+              <div className="overflow-x-auto">
+                <svg viewBox={`0 0 ${Math.max(600, lineChartData.length * 50)} 300`} className="w-full min-w-[600px]">
+                  {(() => {
+                    const maxValue = Math.max(
+                      ...lineChartData.map(item => Math.max(item.income, item.expense))
+                    );
+                    const chartWidth = Math.max(600, lineChartData.length * 50);
+                    const chartHeight = 300;
+                    const padding = 50;
+                    
+                    const xStep = (chartWidth - 2 * padding) / (lineChartData.length - 1 || 1);
+                    
+                    const getY = (value: number) => {
+                      return chartHeight - padding - ((value / maxValue) * (chartHeight - 2 * padding));
+                    };
+                    
+                    const incomePoints = lineChartData
+                      .map((item, index) => `${padding + index * xStep},${getY(item.income)}`)
+                      .join(' ');
+                    
+                    const expensePoints = lineChartData
+                      .map((item, index) => `${padding + index * xStep},${getY(item.expense)}`)
+                      .join(' ');
+                    
+                    return (
+                      <>
+                        {/* Eixos */}
+                        <line
+                          x1={padding}
+                          y1={chartHeight - padding}
+                          x2={chartWidth - padding}
+                          y2={chartHeight - padding}
+                          stroke="currentColor"
+                          strokeWidth="1"
+                          className="text-gray-300 dark:text-gray-700"
+                        />
+                        <line
+                          x1={padding}
+                          y1={padding}
+                          x2={padding}
+                          y2={chartHeight - padding}
+                          stroke="currentColor"
+                          strokeWidth="1"
+                          className="text-gray-300 dark:text-gray-700"
+                        />
+                        
+                        {/* Linha de Rendas */}
+                        <polyline
+                          points={incomePoints}
+                          fill="none"
+                          stroke="#10b981"
+                          strokeWidth="3"
+                        />
+                        
+                        {/* Linha de Gastos */}
+                        <polyline
+                          points={expensePoints}
+                          fill="none"
+                          stroke="#ef4444"
+                          strokeWidth="3"
+                        />
+                        
+                        {/* Pontos */}
+                        {lineChartData.map((item, index) => (
+                          <g key={index}>
+                            <circle
+                              cx={padding + index * xStep}
+                              cy={getY(item.income)}
+                              r="5"
+                              fill="#10b981"
+                            />
+                            <circle
+                              cx={padding + index * xStep}
+                              cy={getY(item.expense)}
+                              r="5"
+                              fill="#ef4444"
+                            />
+                          </g>
+                        ))}
+                        
+                        {/* Labels do eixo X */}
+                        {lineChartData.map((item, index) => (
+                          <text
+                            key={`label-${index}`}
+                            x={padding + index * xStep}
+                            y={chartHeight - padding + 20}
+                            className="text-xs fill-gray-700 dark:fill-gray-300"
+                            textAnchor="middle"
+                          >
+                            {item.date.substring(0, 5)}
+                          </text>
+                        ))}
+                        
+                        {/* Labels de valor (eixo Y) */}
+                        {[0, 0.25, 0.5, 0.75, 1].map((fraction, idx) => {
+                          const value = maxValue * fraction;
+                          const y = chartHeight - padding - (fraction * (chartHeight - 2 * padding));
+                          return (
+                            <text
+                              key={`y-label-${idx}`}
+                              x={padding - 10}
+                              y={y}
+                              className="text-xs fill-gray-700 dark:fill-gray-300"
+                              textAnchor="end"
+                              dominantBaseline="middle"
+                            >
+                              R$ {value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                            </text>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
+                </svg>
+                <div className="flex gap-4 justify-center mt-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-500 rounded" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Rendas</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-500 rounded" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Gastos</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                Nenhum dado disponível para o período selecionado
+              </p>
+            )}
           </div>
         </div>
       </main>

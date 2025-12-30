@@ -4,11 +4,12 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFamily } from '@/lib/hooks/useFamily';
-import { useIncomes } from '@/lib/hooks/useIncomes';
-import { useExpenses } from '@/lib/hooks/useExpenses';
+import { useEntradas, PeriodType } from '@/lib/hooks/useEntradas';
+import { useSaidas } from '@/lib/hooks/useSaidas';
 import FamilySelector from '@/components/FamilySelector';
 import CreateFamilyForm from '@/components/CreateFamilyForm';
 import StatsCard from '@/components/StatsCard';
+import PeriodToggleDual from '@/components/PeriodToggleDual';
 import Link from 'next/link';
 
 export default function Dashboard() {
@@ -21,12 +22,15 @@ export default function Dashboard() {
   const [showShareLinks, setShowShareLinks] = useState(false);
   const [shareLinks, setShareLinks] = useState<any[]>([]);
   const [isCreatingLink, setIsCreatingLink] = useState(false);
+  const [periodo, setPeriodo] = useState<PeriodType>('mes');
 
   const { families, selectedFamily, mutate: mutateFamilies } = useFamily(selectedFamilyId);
-  const { totalIncome } = useIncomes(selectedFamilyId);
-  const { totalExpense } = useExpenses(selectedFamilyId);
+  const { totalMes: totalEntradaMes, totalAno: totalEntradaAno, totalGeral: totalEntradaGeral, countMes: countEntradaMes, countAno: countEntradaAno, countGeral: countEntradaGeral } = useEntradas(selectedFamilyId);
+  const { totalMes: totalSaidaMes, totalAno: totalSaidaAno, totalGeral: totalSaidaGeral, countMes: countSaidaMes, countAno: countSaidaAno, countGeral: countSaidaGeral } = useSaidas(selectedFamilyId);
 
-  const balance = totalIncome - totalExpense;
+  const totalEntrada = periodo === 'mes' ? totalEntradaMes : periodo === 'ano' ? totalEntradaAno : totalEntradaGeral;
+  const totalSaida = periodo === 'mes' ? totalSaidaMes : periodo === 'ano' ? totalSaidaAno : totalSaidaGeral;
+  const balance = totalEntrada - totalSaida;
   const isAdmin = selectedFamily?.members.find(m => m.user.id === session?.user?.id)?.role === 'admin';
 
   // Save selected family to localStorage
@@ -405,20 +409,34 @@ export default function Dashboard() {
                 </div>
               </div>
 
+              {/* Period Toggle */}
+              <div className="flex justify-center">
+                <PeriodToggleDual
+                  selectedPeriod={periodo}
+                  onPeriodChange={setPeriodo}
+                  countEntradasMes={countEntradaMes}
+                  countEntradasAno={countEntradaAno}
+                  countEntradasGeral={countEntradaGeral}
+                  countSaidasMes={countSaidaMes}
+                  countSaidasAno={countSaidaAno}
+                  countSaidasGeral={countSaidaGeral}
+                />
+              </div>
+
               {/* Stats Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <StatsCard
-                  title="Rendas Totais"
-                  value={totalIncome}
+                  title={periodo === 'mes' ? 'Entradas do Mês' : periodo === 'ano' ? 'Entradas do Ano' : 'Entradas Totais'}
+                  value={totalEntrada}
                   gradient="from-green-500 to-emerald-600"
                 />
                 <StatsCard
-                  title="Gastos Totais"
-                  value={totalExpense}
+                  title={periodo === 'mes' ? 'Saídas do Mês' : periodo === 'ano' ? 'Saídas do Ano' : 'Saídas Totais'}
+                  value={totalSaida}
                   gradient="from-red-500 to-rose-600"
                 />
                 <StatsCard
-                  title="Saldo"
+                  title={periodo === 'mes' ? 'Saldo do Mês' : periodo === 'ano' ? 'Saldo do Ano' : 'Saldo Total'}
                   value={balance}
                   gradient={balance >= 0 ? 'from-blue-500 to-indigo-600' : 'from-orange-500 to-amber-600'}
                 />
@@ -427,22 +445,22 @@ export default function Dashboard() {
               {/* Quick Actions */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <Link
-                  href={`/rendas?family=${selectedFamilyId}`}
+                  href={`/entradas?family=${selectedFamilyId}`}
                   className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
                 >
                   <span className="text-3xl">💵</span>
                   <div>
-                    <h3 className="text-xl font-bold">Adicionar Renda</h3>
+                    <h3 className="text-xl font-bold">Adicionar Entrada</h3>
                     <p className="text-sm opacity-90">Registrar nova entrada</p>
                   </div>
                 </Link>
                 <Link
-                  href={`/gastos?family=${selectedFamilyId}`}
+                  href={`/saidas?family=${selectedFamilyId}`}
                   className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl"
                 >
                   <span className="text-3xl">💳</span>
                   <div>
-                    <h3 className="text-xl font-bold">Adicionar Gasto</h3>
+                    <h3 className="text-xl font-bold">Adicionar Saída</h3>
                     <p className="text-sm opacity-90">Registrar nova saída</p>
                   </div>
                 </Link>

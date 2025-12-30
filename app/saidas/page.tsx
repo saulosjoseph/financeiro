@@ -3,14 +3,15 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useExpenses } from '@/lib/hooks/useExpenses';
+import { useSaidas, PeriodType } from '@/lib/hooks/useSaidas';
 import { useTags } from '@/lib/hooks/useTags';
 import { useFamily } from '@/lib/hooks/useFamily';
 import TagSelector from '@/components/TagSelector';
+import PeriodToggle from '@/components/PeriodToggle';
 import Link from 'next/link';
 import { formatCurrency, parseCurrency } from '@/lib/utils/currencyMask';
 
-function ExpensesContent() {
+function SaidasContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -25,14 +26,26 @@ function ExpensesContent() {
   const [recurringDay, setRecurringDay] = useState<number>(new Date().getDate());
   const [recurringEndDate, setRecurringEndDate] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [isAddingExpense, setIsAddingExpense] = useState(false);
+  const [isAddingSaida, setIsAddingSaida] = useState(false);
   const [showCreateTag, setShowCreateTag] = useState(false);
   const [tagName, setTagName] = useState('');
   const [tagColor, setTagColor] = useState('#6B7280');
   const [isCreatingTag, setIsCreatingTag] = useState(false);
+  const [periodo, setPeriodo] = useState<PeriodType>('mes');
 
   const { selectedFamily } = useFamily(familyId);
-  const { expenses, totalExpense, mutate: mutateExpenses } = useExpenses(familyId);
+  const { 
+    saidas, 
+    totalMes, 
+    totalAno, 
+    totalGeral, 
+    countMes, 
+    countAno, 
+    countGeral, 
+    getPeriodLabel, 
+    getFilteredData, 
+    mutate: mutateSaidas 
+  } = useSaidas(familyId);
   const { tags, mutate: mutateTags } = useTags(familyId);
 
   useEffect(() => {
@@ -46,13 +59,13 @@ function ExpensesContent() {
     setAmount(formatted);
   };
 
-  const handleAddExpense = async (e: React.FormEvent) => {
+  const handleAddSaida = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !familyId) return;
-    setIsAddingExpense(true);
+    setIsAddingSaida(true);
 
     try {
-      const response = await fetch(`/api/families/${familyId}/expenses`, {
+      const response = await fetch(`/api/families/${familyId}/saidas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -78,15 +91,15 @@ function ExpensesContent() {
         setRecurringDay(new Date().getDate());
         setRecurringEndDate('');
         setSelectedTags([]);
-        mutateExpenses();
-        alert('Gasto adicionado com sucesso!');
+        mutateSaidas();
+        alert('Saída adicionada com sucesso!');
       } else {
-        alert('Erro ao adicionar gasto');
+        alert('Erro ao adicionar saída');
       }
     } catch (error) {
-      alert('Erro ao adicionar gasto');
+      alert('Erro ao adicionar saída');
     } finally {
-      setIsAddingExpense(false);
+      setIsAddingSaida(false);
     }
   };
 
@@ -137,6 +150,21 @@ function ExpensesContent() {
     return null;
   }
 
+  const getTotalByPeriod = () => {
+    return periodo === 'mes' ? totalMes : periodo === 'ano' ? totalAno : totalGeral;
+  };
+
+  const getPeriodTitle = () => {
+    return periodo === 'mes' ? 'Saída Familiar do Mês' : periodo === 'ano' ? 'Saída Familiar do Ano' : 'Saída Familiar Total';
+  };
+
+  const getEmptyMessage = () => {
+    if (periodo === 'geral') return 'Nenhuma saída registrada ainda';
+    return `Nenhuma saída registrada em ${getPeriodLabel(periodo)}`;
+  };
+
+  const filteredSaidas = getFilteredData(periodo);
+
   return (
     <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
       <main className="flex min-h-screen w-full max-w-4xl flex-col py-4 sm:py-16 px-4 sm:px-8 bg-white dark:bg-black mx-auto">
@@ -151,7 +179,7 @@ function ExpensesContent() {
                 ← Voltar ao Dashboard
               </Link>
               <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
-                💳 Gastos {selectedFamily && `- ${selectedFamily.name}`}
+                💳 Saídas {selectedFamily && `- ${selectedFamily.name}`}
               </h1>
             </div>
             <div className="flex items-center gap-3">
@@ -165,18 +193,30 @@ function ExpensesContent() {
             </div>
           </div>
 
-          {/* Total Expense Card */}
-          <div className="bg-gradient-to-r from-red-500 to-rose-600 p-6 rounded-lg text-white">
-            <p className="text-sm opacity-90">Gastos Totais</p>
-            <p className="text-4xl font-bold mt-2">
-              R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
+          {/* Period Toggle */}
+          <div className="flex justify-center">
+            <PeriodToggle
+              selectedPeriod={periodo}
+              onPeriodChange={setPeriodo}
+              countMes={countMes}
+              countAno={countAno}
+              countGeral={countGeral}
+            />
           </div>
 
-          {/* Add Expense Form */}
-          <form onSubmit={handleAddExpense} className="bg-red-50 dark:bg-red-950 p-4 rounded-lg space-y-4">
+          {/* Total Card */}
+          <div className="bg-gradient-to-r from-red-500 to-rose-600 p-6 rounded-lg text-white">
+            <p className="text-sm opacity-90">{getPeriodTitle()}</p>
+            <p className="text-4xl font-bold mt-2 transition-all duration-300 ease-in-out">
+              R$ {getTotalByPeriod().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs opacity-75 mt-1">{getPeriodLabel(periodo)}</p>
+          </div>
+
+          {/* Add Form */}
+          <form onSubmit={handleAddSaida} className="bg-red-50 dark:bg-red-950 p-4 rounded-lg space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-medium text-base text-black dark:text-zinc-50">Adicionar Novo Gasto</h3>
+              <h3 className="font-medium text-base text-black dark:text-zinc-50">Adicionar Nova Saída</h3>
               <button
                 type="button"
                 onClick={() => setShowCreateTag(!showCreateTag)}
@@ -186,7 +226,6 @@ function ExpensesContent() {
               </button>
             </div>
 
-            {/* Create Tag Form */}
             {showCreateTag && (
               <div className="bg-white dark:bg-gray-800 p-3 rounded border border-red-200 dark:border-red-800">
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -215,7 +254,6 @@ function ExpensesContent() {
               </div>
             )}
 
-            {/* Tag Selector */}
             <TagSelector tags={tags} selectedTags={selectedTags} onToggleTag={toggleTag} />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -259,7 +297,7 @@ function ExpensesContent() {
                     className="w-4 h-4"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">
-                    Gasto Recorrente
+                    Saída Recorrente
                   </span>
                 </label>
               </div>
@@ -326,73 +364,72 @@ function ExpensesContent() {
             />
             <button
               type="submit"
-              disabled={isAddingExpense}
+              disabled={isAddingSaida}
               className="w-full px-4 py-3 text-base bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 font-medium"
             >
-              {isAddingExpense ? 'Adicionando...' : '+ Adicionar Gasto'}
+              {isAddingSaida ? 'Adicionando...' : '+ Adicionar Saída'}
             </button>
           </form>
 
-          {/* Expenses List */}
+          {/* List */}
           <div>
             <h3 className="font-medium text-base text-black dark:text-zinc-50 mb-3">
-              Histórico de Gastos
+              Histórico de Saídas
             </h3>
             <div className="space-y-3">
-              {expenses && expenses.length > 0 ? (
-                expenses.map((expense) => (
+              {filteredSaidas && filteredSaidas.length > 0 ? (
+                filteredSaidas.map((saida) => (
                   <div
-                    key={expense.id}
+                    key={saida.id}
                     className="p-4 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-900"
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                       <div className="flex-1 w-full">
                         <div className="flex items-center gap-3">
-                          {expense.user.image && (
+                          {saida.user.image && (
                             <img
-                              src={expense.user.image}
-                              alt={expense.user.name || ''}
+                              src={saida.user.image}
+                              alt={saida.user.name || ''}
                               className="w-10 h-10 rounded-full flex-shrink-0"
                             />
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-lg text-red-700 dark:text-red-400">
-                              - R$ {parseFloat(expense.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              - R$ {parseFloat(saida.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                              {expense.user.name} • {expense.category || 'Sem categoria'}
+                              {saida.user.name} • {saida.category || 'Sem categoria'}
                             </p>
-                            {/* Tags */}
-                            {expense.tags && expense.tags.length > 0 && (
+                            {saida.tags && saida.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-2">
-                                {expense.tags.map((expenseTag) => (
+                                {saida.tags.map((saidaTag) => (
                                   <span
-                                    key={expenseTag.id}
+                                    key={saidaTag.id}
                                     className="px-2 py-0.5 text-xs rounded-full text-white"
-                                    style={{ backgroundColor: expenseTag.tag.color }}
+                                    style={{ backgroundColor: saidaTag.tag.color }}
                                   >
-                                    {expenseTag.tag.name}
+                                    {saidaTag.tag.name}
                                   </span>
                                 ))}
                               </div>
                             )}
                           </div>
                         </div>
-                        {expense.description && (
+                        {saida.description && (
                           <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 ml-13">
-                            {expense.description}
+                            {saida.description}
                           </p>
                         )}
                       </div>
                       <p className="text-xs text-gray-500 ml-13 sm:ml-0 whitespace-nowrap">
-                        {new Date(expense.date).toLocaleDateString('pt-BR')}
+                        {new Date(saida.date).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                   </div>
                 ))
               ) : (
                 <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                  Nenhum gasto registrado ainda
+                  {getEmptyMessage()}
                 </p>
               )}
             </div>
@@ -403,14 +440,14 @@ function ExpensesContent() {
   );
 }
 
-export default function ExpensesPage() {
+export default function SaidasPage() {
   return (
     <Suspense fallback={
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
         <p className="text-lg">Carregando...</p>
       </div>
     }>
-      <ExpensesContent />
+      <SaidasContent />
     </Suspense>
   );
 }

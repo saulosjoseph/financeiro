@@ -1,6 +1,6 @@
 'use client';
 
-import { Tag } from '@/lib/hooks/useIncomes';
+import { Tag } from '@/lib/hooks/useEntradas';
 
 interface TagSelectorProps {
   tags: Tag[] | undefined;

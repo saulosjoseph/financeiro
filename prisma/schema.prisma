@@ -26,8 +26,8 @@ model User {
   accounts        Account[]
   sessions        Session[]
   familyMembers   FamilyMember[]
-  incomes         Income[]
-  expenses        Expense[]
+  entradas        Entrada[]
+  saidas          Saida[]
 
   @@map("users")
 }
@@ -41,8 +41,8 @@ model Family {
   members     FamilyMember[]
   invitations FamilyInvitation[]
   shareLinks  FamilyShareLink[]
-  incomes     Income[]
-  expenses    Expense[]
+  entradas    Entrada[]
+  saidas      Saida[]
   tags        Tag[]
 
   @@map("families")
@@ -56,8 +56,8 @@ model Tag {
   createdAt DateTime @default(now()) @map("created_at")
 
   family   Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  incomes  IncomeTag[]
-  expenses ExpenseTag[]
+  entradas EntradaTag[]
+  saidas   SaidaTag[]
 
   @@unique([familyId, name])
   @@map("tags")
@@ -113,7 +113,7 @@ model FamilyShareLink {
   @@map("family_share_links")
 }
 
-model Income {
+model Entrada {
   id               String   @id @default(cuid())
   familyId         String   @map("family_id")
   userId           String   @map("user_id")
@@ -128,28 +128,28 @@ model Income {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  family Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tags   IncomeTag[]
+  family Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags   EntradaTag[]
 
   @@index([familyId, date])
   @@index([isRecurring])
-  @@map("incomes")
+  @@map("entradas")
 }
 
-model IncomeTag {
-  id       String @id @default(cuid())
-  incomeId String @map("income_id")
-  tagId    String @map("tag_id")
+model EntradaTag {
+  id        String @id @default(cuid())
+  entradaId String @map("entrada_id")
+  tagId     String @map("tag_id")
 
-  income Income @relation(fields: [incomeId], references: [id], onDelete: Cascade)
-  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  entrada Entrada @relation(fields: [entradaId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
-  @@unique([incomeId, tagId])
-  @@map("income_tags")
+  @@unique([entradaId, tagId])
+  @@map("entrada_tags")
 }
 
-model Expense {
+model Saida {
   id               String   @id @default(cuid())
   familyId         String   @map("family_id")
   userId           String   @map("user_id")
@@ -164,25 +164,25 @@ model Expense {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  family Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tags   ExpenseTag[]
+  family Family     @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags   SaidaTag[]
 
   @@index([familyId, date])
   @@index([isRecurring])
-  @@map("expenses")
+  @@map("saidas")
 }
 
-model ExpenseTag {
-  id        String @id @default(cuid())
-  expenseId String @map("expense_id")
-  tagId     String @map("tag_id")
+model SaidaTag {
+  id      String @id @default(cuid())
+  saidaId String @map("saida_id")
+  tagId   String @map("tag_id")
 
-  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  saida Saida @relation(fields: [saidaId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
-  @@unique([expenseId, tagId])
-  @@map("expense_tags")
+  @@unique([saidaId, tagId])
+  @@map("saida_tags")
 }
 
 model Account {
