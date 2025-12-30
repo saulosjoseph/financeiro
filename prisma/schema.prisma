@@ -38,12 +38,13 @@ model Family {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  members     FamilyMember[]
-  invitations FamilyInvitation[]
-  shareLinks  FamilyShareLink[]
-  entradas    Entrada[]
-  saidas      Saida[]
-  tags        Tag[]
+  members      FamilyMember[]
+  invitations  FamilyInvitation[]
+  shareLinks   FamilyShareLink[]
+  entradas     Entrada[]
+  saidas       Saida[]
+  tags         Tag[]
+  savingsGoals SavingsGoal[]
 
   @@map("families")
 }
@@ -128,9 +129,10 @@ model Entrada {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  family Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tags   EntradaTag[]
+  family              Family              @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags                EntradaTag[]
+  goalContributions   GoalContribution[]
 
   @@index([familyId, date])
   @@index([isRecurring])
@@ -223,4 +225,45 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model SavingsGoal {
+  id               String   @id @default(cuid())
+  familyId         String   @map("family_id")
+  name             String
+  description      String?
+  targetAmount     Decimal  @db.Decimal(10, 2) @map("target_amount")
+  currentAmount    Decimal  @default(0) @db.Decimal(10, 2) @map("current_amount")
+  targetDate       DateTime? @map("target_date")
+  priority         Int      @default(0) // 0=low, 1=medium, 2=high
+  isEmergencyFund  Boolean  @default(false) @map("is_emergency_fund")
+  monthlyExpenses  Decimal? @db.Decimal(10, 2) @map("monthly_expenses") // for emergency fund calculation
+  targetMonths     Int?     @map("target_months") // for emergency fund (typically 3-6 months)
+  isCompleted      Boolean  @default(false) @map("is_completed")
+  completedAt      DateTime? @map("completed_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  family        Family              @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  contributions GoalContribution[]
+
+  @@index([familyId])
+  @@index([isCompleted])
+  @@map("savings_goals")
+}
+
+model GoalContribution {
+  id            String   @id @default(cuid())
+  goalId        String   @map("goal_id")
+  entradaId     String?  @map("entrada_id") // optional link to entrada
+  amount        Decimal  @db.Decimal(10, 2)
+  description   String?
+  date          DateTime @default(now())
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  goal    SavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  entrada Entrada?    @relation(fields: [entradaId], references: [id], onDelete: SetNull)
+
+  @@index([goalId, date])
+  @@map("goal_contributions")
 }

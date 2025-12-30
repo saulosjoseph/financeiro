@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useFamily } from '@/lib/hooks/useFamily';
 import { useEntradas, PeriodType } from '@/lib/hooks/useEntradas';
 import { useSaidas } from '@/lib/hooks/useSaidas';
+import { useGoals } from '@/lib/hooks/useGoals';
 import FamilySelector from '@/components/FamilySelector';
 import CreateFamilyForm from '@/components/CreateFamilyForm';
 import StatsCard from '@/components/StatsCard';
@@ -30,6 +31,7 @@ export default function Dashboard() {
   const { families, selectedFamily, mutate: mutateFamilies } = useFamily(selectedFamilyId);
   const { totalMes: totalEntradaMes, totalAno: totalEntradaAno, totalGeral: totalEntradaGeral, countMes: countEntradaMes, countAno: countEntradaAno, countGeral: countEntradaGeral } = useEntradas(selectedFamilyId);
   const { totalMes: totalSaidaMes, totalAno: totalSaidaAno, totalGeral: totalSaidaGeral, countMes: countSaidaMes, countAno: countSaidaAno, countGeral: countSaidaGeral } = useSaidas(selectedFamilyId);
+  const { goals } = useGoals(selectedFamilyId);
 
   const totalEntrada = periodo === 'mes' ? totalEntradaMes : periodo === 'ano' ? totalEntradaAno : totalEntradaGeral;
   const totalSaida = periodo === 'mes' ? totalSaidaMes : periodo === 'ano' ? totalSaidaAno : totalSaidaGeral;
@@ -530,7 +532,7 @@ export default function Dashboard() {
               </div>
 
               {/* Quick Actions */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                 <Link
                   href={`/entradas?family=${selectedFamilyId}`}
                   className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
@@ -571,7 +573,82 @@ export default function Dashboard() {
                     <p className="text-sm opacity-90">Relatórios e gráficos</p>
                   </div>
                 </Link>
+                <Link
+                  href={`/metas?family=${selectedFamilyId}`}
+                  className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
+                >
+                  <span className="text-3xl">🎯</span>
+                  <div>
+                    <h3 className="text-xl font-bold">Metas</h3>
+                    <p className="text-sm opacity-90">Ver e gerenciar</p>
+                  </div>
+                </Link>
               </div>
+
+              {/* Goals Summary */}
+              {goals && goals.length > 0 && (
+                <div className="border-t pt-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-semibold text-black dark:text-white">
+                      🎯 Suas Metas de Economia
+                    </h3>
+                    <Link
+                      href={`/metas?family=${selectedFamilyId}`}
+                      className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"
+                    >
+                      Ver todas →
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {goals.slice(0, 3).map((goal) => {
+                      const current = parseFloat(goal.currentAmount);
+                      const target = parseFloat(goal.targetAmount);
+                      const progress = Math.min((current / target) * 100, 100);
+                      
+                      return (
+                        <div
+                          key={goal.id}
+                          className={`bg-white dark:bg-gray-900 rounded-lg shadow-md p-4 ${
+                            goal.isCompleted ? 'border-2 border-green-500' : ''
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
+                              {goal.isEmergencyFund && '🛡️ '}{goal.name}
+                            </h4>
+                            {goal.isCompleted && (
+                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                ✓
+                              </span>
+                            )}
+                          </div>
+                          <div className="mb-3">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                R$ {current.toFixed(2).replace('.', ',')}
+                              </span>
+                              <span className="font-semibold text-gray-900 dark:text-white">
+                                {progress.toFixed(0)}%
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full transition-all ${
+                                  goal.isCompleted ? 'bg-green-500' : 'bg-blue-500'
+                                }`}
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Meta: R$ {target.toFixed(2).replace('.', ',')}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
