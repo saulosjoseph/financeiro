@@ -193,31 +193,37 @@ function MetasContent() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Metas de Economia</h1>
-          {selectedFamily && (
-            <p className="text-gray-600 mt-1">Família: {selectedFamily.name}</p>
-          )}
-        </div>
-        <Link
-          href={`/dashboard?family=${familyId}`}
-          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-        >
-          ← Voltar
-        </Link>
-      </div>
+    <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
+      <main className="flex min-h-screen w-full max-w-4xl flex-col py-4 sm:py-16 px-4 sm:px-8 bg-white dark:bg-black mx-auto">
+        <div className="flex flex-col gap-4 sm:gap-6 w-full">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-3">
+            <div>
+              <Link
+                href={`/dashboard?family=${familyId}`}
+                className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 mb-2 inline-block"
+              >
+                ← Voltar ao Dashboard
+              </Link>
+              <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
+                🎯 Metas {selectedFamily && `- ${selectedFamily.name}`}
+              </h1>
+            </div>
+          </div>
 
-      {/* Criar Nova Meta */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <button
-          onClick={() => setShowCreateGoal(!showCreateGoal)}
-          className="w-full text-left flex items-center justify-between text-lg font-semibold text-gray-900 mb-4"
-        >
-          <span>➕ Criar Nova Meta</span>
-          <span className="text-2xl">{showCreateGoal ? '−' : '+'}</span>
-        </button>
+          {/* Criar Nova Meta */}
+          <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-medium text-base text-black dark:text-zinc-50">
+                {showCreateGoal ? 'Criar Nova Meta' : 'Adicionar Nova Meta'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowCreateGoal(!showCreateGoal)}
+                className="text-sm text-green-600 dark:text-green-400 hover:underline"
+              >
+                {showCreateGoal ? 'Cancelar' : '+ Nova Meta'}
+              </button>
+            </div>
 
         {showCreateGoal && (
           <form onSubmit={handleCreateGoal} className="space-y-4">
@@ -554,7 +560,9 @@ function MetasContent() {
             );
           })
         )}
-      </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

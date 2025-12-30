@@ -586,7 +586,7 @@ export default function Dashboard() {
               </div>
 
               {/* Goals Summary */}
-              {goals && goals.length > 0 && (
+              {goals && Array.isArray(goals) && goals.length > 0 && (
                 <div className="border-t pt-6">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-semibold text-black dark:text-white">
