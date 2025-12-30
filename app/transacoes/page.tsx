@@ -38,8 +38,8 @@ function TransactionsContent() {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const { selectedFamily } = useFamily(familyId);
-  const { entradas, totalIncome, mutate: mutateIncomes } = useEntradas(familyId);
-  const { saidas, totalExpense, mutate: mutateExpenses } = useSaidas(familyId);
+  const { entradas, totalGeral: totalIncome, mutate: mutateIncomes } = useEntradas(familyId);
+  const { saidas, totalGeral: totalExpense, mutate: mutateExpenses } = useSaidas(familyId);
   const { tags } = useTags(familyId);
 
   useEffect(() => {

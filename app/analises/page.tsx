@@ -38,8 +38,8 @@ function AnalysesContent() {
   });
 
   const { selectedFamily } = useFamily(familyId);
-  const { entradas, totalEntrada } = useEntradas(familyId);
-  const { saidas, totalSaida } = useSaidas(familyId);
+  const { entradas, totalGeral: totalEntrada } = useEntradas(familyId);
+  const { saidas, totalGeral: totalSaida } = useSaidas(familyId);
 
   useEffect(() => {
     if (!familyId) {
