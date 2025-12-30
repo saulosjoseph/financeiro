@@ -1,7 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
-import { Tag } from './useIncomes';
+import { Tag } from './useEntradas';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
