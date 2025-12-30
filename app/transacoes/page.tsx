@@ -3,14 +3,14 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useIncomes, Income } from '@/lib/hooks/useIncomes';
-import { useExpenses, Expense } from '@/lib/hooks/useExpenses';
+import { useEntradas, Entrada } from '@/lib/hooks/useEntradas';
+import { useSaidas, Saida } from '@/lib/hooks/useSaidas';
 import { useFamily } from '@/lib/hooks/useFamily';
 import { useTags } from '@/lib/hooks/useTags';
 import { formatCurrency as formatCurrencyMask, parseCurrency } from '@/lib/utils/currencyMask';
 import Link from 'next/link';
 
-type TransactionType = 'all' | 'income' | 'expense';
+type TransactionType = 'all' | 'entrada' | 'saida';
 type SortBy = 'date' | 'value' | 'description';
 type SortOrder = 'asc' | 'desc';
 
@@ -29,7 +29,7 @@ function TransactionsContent() {
   const [searchText, setSearchText] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  const [editingItem, setEditingItem] = useState<{type: 'income' | 'expense', item: Income | Expense} | null>(null);
+  const [editingItem, setEditingItem] = useState<{type: 'entrada' | 'saida', item: Entrada | Saida} | null>(null);
   const [editAmount, setEditAmount] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editSourceOrCategory, setEditSourceOrCategory] = useState('');
@@ -38,8 +38,8 @@ function TransactionsContent() {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const { selectedFamily } = useFamily(familyId);
-  const { incomes, totalIncome, mutate: mutateIncomes } = useIncomes(familyId);
-  const { expenses, totalExpense, mutate: mutateExpenses } = useExpenses(familyId);
+  const { entradas, totalIncome, mutate: mutateIncomes } = useEntradas(familyId);
+  const { saidas, totalExpense, mutate: mutateExpenses } = useSaidas(familyId);
   const { tags } = useTags(familyId);
 
   useEffect(() => {
@@ -54,22 +54,22 @@ function TransactionsContent() {
   const filteredTransactions = useMemo(() => {
     let transactions: Array<{
       id: string;
-      type: 'income' | 'expense';
+      type: 'entrada' | 'saida';
       amount: number;
       description: string;
       sourceOrCategory: string;
       date: string;
       user: any;
       tags: any[];
-      item: Income | Expense;
+      item: Entrada | Saida;
     }> = [];
 
     // Adicionar rendas
-    if (transactionType === 'all' || transactionType === 'income') {
+    if (transactionType === 'all' || transactionType === 'entrada') {
       transactions = transactions.concat(
-        (incomes || []).map(income => ({
+        (entradas || []).map(income => ({
           id: income.id,
-          type: 'income' as const,
+          type: 'entrada' as const,
           amount: parseFloat(income.amount),
           description: income.description || '',
           sourceOrCategory: income.source || '',
@@ -82,11 +82,11 @@ function TransactionsContent() {
     }
 
     // Adicionar gastos
-    if (transactionType === 'all' || transactionType === 'expense') {
+    if (transactionType === 'all' || transactionType === 'saida') {
       transactions = transactions.concat(
-        (expenses || []).map(expense => ({
+        (saidas || []).map(expense => ({
           id: expense.id,
-          type: 'expense' as const,
+          type: 'saida' as const,
           amount: parseFloat(expense.amount),
           description: expense.description || '',
           sourceOrCategory: expense.category || '',
@@ -151,7 +151,7 @@ function TransactionsContent() {
     });
 
     return transactions;
-  }, [incomes, expenses, transactionType, selectedTags, startDate, endDate, minValue, maxValue, searchText, sortBy, sortOrder]);
+  }, [entradas, saidas, transactionType, selectedTags, startDate, endDate, minValue, maxValue, searchText, sortBy, sortOrder]);
 
   const toggleTag = (tagId: string) => {
     setSelectedTags(prev =>
@@ -159,11 +159,11 @@ function TransactionsContent() {
     );
   };
 
-  const handleEdit = (type: 'income' | 'expense', item: Income | Expense) => {
+  const handleEdit = (type: 'entrada' | 'saida', item: Entrada | Saida) => {
     setEditingItem({ type, item });
     setEditAmount(formatCurrencyMask(item.amount));
     setEditDescription(item.description || '');
-    setEditSourceOrCategory(type === 'income' ? (item as Income).source || '' : (item as Expense).category || '');
+    setEditSourceOrCategory(type === 'entrada' ? (item as Entrada).source || '' : (item as Saida).category || '');
     setEditDate(new Date(item.date).toISOString().split('T')[0]);
     setEditTags(item.tags.map(t => t.tag.id));
   };
@@ -182,9 +182,9 @@ function TransactionsContent() {
     setIsUpdating(true);
 
     try {
-      const endpoint = editingItem.type === 'income' 
-        ? `/api/families/${familyId}/incomes`
-        : `/api/families/${familyId}/expenses`;
+      const endpoint = editingItem.type === 'entrada' 
+        ? `/api/families/${familyId}/entradas`
+        : `/api/families/${familyId}/saidas`;
 
       const body: any = {
         id: editingItem.item.id,
@@ -194,7 +194,7 @@ function TransactionsContent() {
         tagIds: editTags,
       };
 
-      if (editingItem.type === 'income') {
+      if (editingItem.type === 'entrada') {
         body.source = editSourceOrCategory;
       } else {
         body.category = editSourceOrCategory;
@@ -207,7 +207,7 @@ function TransactionsContent() {
       });
 
       if (response.ok) {
-        if (editingItem.type === 'income') {
+        if (editingItem.type === 'entrada') {
           mutateIncomes();
         } else {
           mutateExpenses();
@@ -224,20 +224,20 @@ function TransactionsContent() {
     }
   };
 
-  const handleDelete = async (type: 'income' | 'expense', id: string) => {
+  const handleDelete = async (type: 'entrada' | 'saida', id: string) => {
     if (!familyId || !confirm('Deseja realmente excluir este item?')) return;
 
     try {
-      const endpoint = type === 'income'
-        ? `/api/families/${familyId}/incomes?id=${id}`
-        : `/api/families/${familyId}/expenses?id=${id}`;
+      const endpoint = type === 'entrada'
+        ? `/api/families/${familyId}/entradas?id=${id}`
+        : `/api/families/${familyId}/saidas?id=${id}`;
 
       const response = await fetch(endpoint, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        if (type === 'income') {
+        if (type === 'entrada') {
           mutateIncomes();
         } else {
           mutateExpenses();
@@ -252,11 +252,11 @@ function TransactionsContent() {
   };
 
   const filteredTotalIncome = filteredTransactions
-    .filter(t => t.type === 'income')
+    .filter(t => t.type === 'entrada')
     .reduce((sum, t) => sum + t.amount, 0);
 
   const filteredTotalExpense = filteredTransactions
-    .filter(t => t.type === 'expense')
+    .filter(t => t.type === 'saida')
     .reduce((sum, t) => sum + t.amount, 0);
 
   const filteredBalance = filteredTotalIncome - filteredTotalExpense;
@@ -323,9 +323,9 @@ function TransactionsContent() {
                   Todas
                 </button>
                 <button
-                  onClick={() => setTransactionType('income')}
+                  onClick={() => setTransactionType('entrada')}
                   className={`px-4 py-2 text-sm rounded ${
-                    transactionType === 'income'
+                    transactionType === 'entrada'
                       ? 'bg-green-600 text-white'
                       : 'bg-white dark:bg-gray-800 text-black dark:text-white border'
                   }`}
@@ -333,9 +333,9 @@ function TransactionsContent() {
                   Rendas
                 </button>
                 <button
-                  onClick={() => setTransactionType('expense')}
+                  onClick={() => setTransactionType('saida')}
                   className={`px-4 py-2 text-sm rounded ${
-                    transactionType === 'expense'
+                    transactionType === 'saida'
                       ? 'bg-red-600 text-white'
                       : 'bg-white dark:bg-gray-800 text-black dark:text-white border'
                   }`}
@@ -540,7 +540,7 @@ function TransactionsContent() {
                   <div
                     key={`${transaction.type}-${transaction.id}`}
                     className={`p-4 rounded-lg border ${
-                      transaction.type === 'income'
+                      transaction.type === 'entrada'
                         ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-900'
                         : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900'
                     }`}
@@ -563,7 +563,7 @@ function TransactionsContent() {
                           </div>
                           <div>
                             <label className="text-xs text-gray-700 dark:text-gray-300 mb-1 block">
-                              {transaction.type === 'income' ? 'Origem' : 'Categoria'}
+                              {transaction.type === 'entrada' ? 'Origem' : 'Categoria'}
                             </label>
                             <input
                               type="text"
@@ -659,14 +659,14 @@ function TransactionsContent() {
                             )}
                             <div className="flex-1 min-w-0">
                               <p className={`font-semibold text-lg ${
-                                transaction.type === 'income'
+                                transaction.type === 'entrada'
                                   ? 'text-green-700 dark:text-green-400'
                                   : 'text-red-700 dark:text-red-400'
                               }`}>
-                                {transaction.type === 'expense' ? '- ' : ''}R$ {transaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                {transaction.type === 'saida' ? '- ' : ''}R$ {transaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </p>
                               <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                                {transaction.user.name} • {transaction.sourceOrCategory || (transaction.type === 'income' ? 'Sem origem' : 'Sem categoria')}
+                                {transaction.user.name} • {transaction.sourceOrCategory || (transaction.type === 'entrada' ? 'Sem origem' : 'Sem categoria')}
                               </p>
                               {transaction.description && (
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">

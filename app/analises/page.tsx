@@ -3,8 +3,8 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useIncomes } from '@/lib/hooks/useIncomes';
-import { useExpenses } from '@/lib/hooks/useExpenses';
+import { useEntradas } from '@/lib/hooks/useEntradas';
+import { useSaidas } from '@/lib/hooks/useSaidas';
 import { useFamily } from '@/lib/hooks/useFamily';
 import PeriodSelector from '@/components/PeriodSelector';
 import PeriodAnalysisChart from '@/components/PeriodAnalysisChart';
@@ -38,8 +38,8 @@ function AnalysesContent() {
   });
 
   const { selectedFamily } = useFamily(familyId);
-  const { incomes, totalIncome } = useIncomes(familyId);
-  const { expenses, totalExpense } = useExpenses(familyId);
+  const { entradas, totalEntrada } = useEntradas(familyId);
+  const { saidas, totalSaida } = useSaidas(familyId);
 
   useEffect(() => {
     if (!familyId) {
@@ -49,51 +49,51 @@ function AnalysesContent() {
 
   // Filtrar rendas e gastos por data
   const filteredIncomes = useMemo(() => {
-    if (!incomes) return [];
-    return incomes.filter(income => {
-      const incomeDate = new Date(income.date);
+    if (!entradas) return [];
+    return entradas.filter(entrada => {
+      const incomeDate = new Date(entrada.date);
       const start = new Date(startDate);
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999); // Incluir o dia inteiro
       return incomeDate >= start && incomeDate <= end;
     });
-  }, [incomes, startDate, endDate]);
+  }, [entradas, startDate, endDate]);
 
   const filteredExpenses = useMemo(() => {
-    if (!expenses) return [];
-    return expenses.filter(expense => {
-      const expenseDate = new Date(expense.date);
+    if (!saidas) return [];
+    return saidas.filter(saida => {
+      const expenseDate = new Date(saida.date);
       const start = new Date(startDate);
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999); // Incluir o dia inteiro
       return expenseDate >= start && expenseDate <= end;
     });
-  }, [expenses, startDate, endDate]);
+  }, [saidas, startDate, endDate]);
 
-  const filteredTotalIncome = filteredIncomes.reduce((sum, income) => sum + parseFloat(income.amount), 0);
-  const filteredTotalExpense = filteredExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+  const filteredTotalIncome = filteredIncomes.reduce((sum, entrada) => sum + parseFloat(entrada.amount), 0);
+  const filteredTotalExpense = filteredExpenses.reduce((sum, saida) => sum + parseFloat(saida.amount), 0);
   const filteredBalance = filteredTotalIncome - filteredTotalExpense;
 
   // Preparar dados para o gráfico de linha
   const lineChartData = useMemo(() => {
-    const dataByDate: { [key: string]: { income: number; expense: number } } = {};
+    const dataByDate: { [key: string]: { entrada: number; saida: number } } = {};
     
     // Agrupar rendas por data
-    filteredIncomes.forEach(income => {
-      const dateKey = new Date(income.date).toLocaleDateString('pt-BR');
+    filteredIncomes.forEach(entrada => {
+      const dateKey = new Date(entrada.date).toLocaleDateString('pt-BR');
       if (!dataByDate[dateKey]) {
-        dataByDate[dateKey] = { income: 0, expense: 0 };
+        dataByDate[dateKey] = { entrada: 0, saida: 0 };
       }
-      dataByDate[dateKey].income += parseFloat(income.amount);
+      dataByDate[dateKey].entrada += parseFloat(entrada.amount);
     });
     
     // Agrupar gastos por data
-    filteredExpenses.forEach(expense => {
-      const dateKey = new Date(expense.date).toLocaleDateString('pt-BR');
+    filteredExpenses.forEach(saida => {
+      const dateKey = new Date(saida.date).toLocaleDateString('pt-BR');
       if (!dataByDate[dateKey]) {
-        dataByDate[dateKey] = { income: 0, expense: 0 };
+        dataByDate[dateKey] = { entrada: 0, saida: 0 };
       }
-      dataByDate[dateKey].expense += parseFloat(expense.amount);
+      dataByDate[dateKey].saida += parseFloat(saida.amount);
     });
 
     // Ordenar por data
@@ -105,8 +105,8 @@ function AnalysesContent() {
       })
       .map(([date, values]) => ({
         date,
-        income: values.income,
-        expense: values.expense,
+        entrada: values.entrada,
+        saida: values.saida,
       }));
   }, [filteredIncomes, filteredExpenses]);
 
@@ -120,7 +120,7 @@ function AnalysesContent() {
   }, [filteredIncomes, filteredExpenses, selectedPeriod]);
 
   const currentPeriodAnalysis = analyses.length > 0 ? analyses[analyses.length - 1] : null;
-  const balance = totalIncome - totalExpense;
+  const balance = totalEntrada - totalSaida;
 
   if (status === 'loading') {
     return (
@@ -276,7 +276,7 @@ function AnalysesContent() {
                 <svg viewBox={`0 0 ${Math.max(600, lineChartData.length * 50)} 300`} className="w-full min-w-[600px]">
                   {(() => {
                     const maxValue = Math.max(
-                      ...lineChartData.map(item => Math.max(item.income, item.expense))
+                      ...lineChartData.map(item => Math.max(item.entrada, item.saida))
                     );
                     const chartWidth = Math.max(600, lineChartData.length * 50);
                     const chartHeight = 300;
@@ -289,11 +289,11 @@ function AnalysesContent() {
                     };
                     
                     const incomePoints = lineChartData
-                      .map((item, index) => `${padding + index * xStep},${getY(item.income)}`)
+                      .map((item, index) => `${padding + index * xStep},${getY(item.entrada)}`)
                       .join(' ');
                     
                     const expensePoints = lineChartData
-                      .map((item, index) => `${padding + index * xStep},${getY(item.expense)}`)
+                      .map((item, index) => `${padding + index * xStep},${getY(item.saida)}`)
                       .join(' ');
                     
                     return (
@@ -339,13 +339,13 @@ function AnalysesContent() {
                           <g key={index}>
                             <circle
                               cx={padding + index * xStep}
-                              cy={getY(item.income)}
+                              cy={getY(item.entrada)}
                               r="5"
                               fill="#10b981"
                             />
                             <circle
                               cx={padding + index * xStep}
-                              cy={getY(item.expense)}
+                              cy={getY(item.saida)}
                               r="5"
                               fill="#ef4444"
                             />
