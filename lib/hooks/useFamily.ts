@@ -20,6 +20,7 @@ export interface FamilyMember {
 export interface Family {
   id: string;
   name: string;
+  initialBalance?: number;
   members: FamilyMember[];
   _count: {
     incomes: number;

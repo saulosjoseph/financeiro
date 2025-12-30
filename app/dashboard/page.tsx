@@ -23,6 +23,9 @@ export default function Dashboard() {
   const [shareLinks, setShareLinks] = useState<any[]>([]);
   const [isCreatingLink, setIsCreatingLink] = useState(false);
   const [periodo, setPeriodo] = useState<PeriodType>('mes');
+  const [showInitialBalance, setShowInitialBalance] = useState(false);
+  const [initialBalanceInput, setInitialBalanceInput] = useState('');
+  const [isSavingBalance, setIsSavingBalance] = useState(false);
 
   const { families, selectedFamily, mutate: mutateFamilies } = useFamily(selectedFamilyId);
   const { totalMes: totalEntradaMes, totalAno: totalEntradaAno, totalGeral: totalEntradaGeral, countMes: countEntradaMes, countAno: countEntradaAno, countGeral: countEntradaGeral } = useEntradas(selectedFamilyId);
@@ -30,7 +33,8 @@ export default function Dashboard() {
 
   const totalEntrada = periodo === 'mes' ? totalEntradaMes : periodo === 'ano' ? totalEntradaAno : totalEntradaGeral;
   const totalSaida = periodo === 'mes' ? totalSaidaMes : periodo === 'ano' ? totalSaidaAno : totalSaidaGeral;
-  const balance = totalEntrada - totalSaida;
+  const initialBalance = selectedFamily?.initialBalance ? parseFloat(selectedFamily.initialBalance.toString()) : 0;
+  const balance = periodo === 'geral' ? initialBalance + totalEntrada - totalSaida : totalEntrada - totalSaida;
   const isAdmin = selectedFamily?.members.find(m => m.user.id === session?.user?.id)?.role === 'admin';
 
   // Save selected family to localStorage
@@ -147,6 +151,43 @@ export default function Dashboard() {
     alert('Link copiado para a área de transferência!');
   };
 
+  const handleSaveInitialBalance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFamilyId || !isAdmin) return;
+
+    setIsSavingBalance(true);
+    try {
+      const response = await fetch(`/api/families/${selectedFamilyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          initialBalance: parseFloat(initialBalanceInput) || 0 
+        }),
+      });
+
+      if (response.ok) {
+        await mutateFamilies();
+        setShowInitialBalance(false);
+        setInitialBalanceInput('');
+        alert('Saldo inicial atualizado com sucesso!');
+      } else {
+        const error = await response.json();
+        alert(`Erro ao atualizar saldo inicial: ${error.error || 'Erro desconhecido'}`);
+      }
+    } catch (error) {
+      console.error('Error saving initial balance:', error);
+      alert('Erro ao atualizar saldo inicial');
+    } finally {
+      setIsSavingBalance(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showInitialBalance && selectedFamily?.initialBalance !== undefined) {
+      setInitialBalanceInput(selectedFamily.initialBalance.toString());
+    }
+  }, [showInitialBalance, selectedFamily?.initialBalance]);
+
   useEffect(() => {
     if (showShareLinks && selectedFamilyId) {
       fetchShareLinks();
@@ -262,6 +303,12 @@ export default function Dashboard() {
                 {isAdmin && (
                   <div className="flex gap-2 flex-wrap">
                     <button
+                      onClick={() => setShowInitialBalance(!showInitialBalance)}
+                      className="px-4 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 whitespace-nowrap"
+                    >
+                      {showInitialBalance ? 'Cancelar' : '💰 Saldo Inicial'}
+                    </button>
+                    <button
                       onClick={() => setShowAddMember(!showAddMember)}
                       className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 whitespace-nowrap"
                     >
@@ -276,6 +323,41 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
+
+              {/* Initial Balance Form */}
+              {showInitialBalance && (
+                <form onSubmit={handleSaveInitialBalance} className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg">
+                  <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50 mb-3">
+                    💰 Configurar Saldo Inicial
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Defina o valor que você tinha antes de começar a usar o app. Este valor será considerado apenas no cálculo do <strong>Saldo Total</strong>.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={initialBalanceInput}
+                      onChange={(e) => setInitialBalanceInput(e.target.value)}
+                      required
+                      className="flex-1 px-3 py-2 text-sm border rounded bg-white dark:bg-gray-800 text-black dark:text-white"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSavingBalance}
+                      className="px-4 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {isSavingBalance ? 'Salvando...' : 'Salvar'}
+                    </button>
+                  </div>
+                  {selectedFamily?.initialBalance !== undefined && selectedFamily.initialBalance !== 0 && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                      Saldo inicial atual: <strong>R$ {parseFloat(selectedFamily.initialBalance.toString()).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                    </p>
+                  )}
+                </form>
+              )}
 
               {/* Add Member Form */}
               {showAddMember && (

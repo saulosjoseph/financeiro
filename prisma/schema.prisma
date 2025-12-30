@@ -32,10 +32,11 @@ model User {
 }
 
 model Family {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(cuid())
+  name           String
+  initialBalance Decimal  @default(0) @db.Decimal(10, 2) @map("initial_balance")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   members     FamilyMember[]
   invitations FamilyInvitation[]
