@@ -39,6 +39,13 @@ export async function GET(
           'email', u.email,
           'image', u.image
         ) as user,
+        json_build_object(
+          'id', fa.id,
+          'name', fa.name,
+          'type', fa.type,
+          'color', fa.color,
+          'icon', fa.icon
+        ) as account,
         COALESCE(
           (
             SELECT json_agg(
@@ -63,6 +70,7 @@ export async function GET(
         ) as tags
       FROM entradas e
       JOIN users u ON u.id = e.user_id
+      LEFT JOIN financial_accounts fa ON fa.id = e.account_id
       WHERE e.family_id = ${familyId}
       ORDER BY e.date DESC
     `;

@@ -6,7 +6,9 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useSaidas, PeriodType } from '@/lib/hooks/useSaidas';
 import { useTags } from '@/lib/hooks/useTags';
 import { useFamily } from '@/lib/hooks/useFamily';
+import { useAccounts } from '@/lib/hooks/useAccounts';
 import TagSelector from '@/components/TagSelector';
+import AccountSelector from '@/components/AccountSelector';
 import PeriodToggle from '@/components/PeriodToggle';
 import Link from 'next/link';
 import { formatCurrency, parseCurrency } from '@/lib/utils/currencyMask';
@@ -17,6 +19,7 @@ function SaidasContent() {
   const searchParams = useSearchParams();
   const familyId = searchParams.get('family');
 
+  const [accountId, setAccountId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -34,6 +37,7 @@ function SaidasContent() {
   const [periodo, setPeriodo] = useState<PeriodType>('mes');
 
   const { selectedFamily } = useFamily(familyId);
+  const { accounts } = useAccounts(familyId);
   const { 
     saidas, 
     totalMes, 
@@ -54,6 +58,14 @@ function SaidasContent() {
     }
   }, [familyId, router]);
 
+  // Auto-select default account
+  useEffect(() => {
+    if (accounts && accounts.length > 0 && !accountId) {
+      const defaultAccount = accounts.find(acc => acc.isDefault && acc.isActive);
+      setAccountId(defaultAccount?.id || accounts[0].id);
+    }
+  }, [accounts, accountId]);
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCurrency(e.target.value);
     setAmount(formatted);
@@ -61,7 +73,10 @@ function SaidasContent() {
 
   const handleAddSaida = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !familyId) return;
+    if (!amount || !familyId || !accountId) {
+      alert('Por favor, selecione uma conta');
+      return;
+    }
     setIsAddingSaida(true);
 
     try {
@@ -69,6 +84,7 @@ function SaidasContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          accountId,
           amount: parseFloat(parseCurrency(amount)),
           description,
           category,
@@ -255,6 +271,18 @@ function SaidasContent() {
             )}
 
             <TagSelector tags={tags} selectedTags={selectedTags} onToggleTag={toggleTag} />
+
+            <div>
+              <label className="text-xs text-gray-700 dark:text-gray-300 mb-1 block">
+                Conta *
+              </label>
+              <AccountSelector
+                accounts={accounts || []}
+                selectedAccountId={accountId}
+                onChange={setAccountId}
+                disabled={isAddingSaida}
+              />
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input

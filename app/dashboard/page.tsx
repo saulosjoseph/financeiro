@@ -7,9 +7,11 @@ import { useFamily } from '@/lib/hooks/useFamily';
 import { useEntradas, PeriodType } from '@/lib/hooks/useEntradas';
 import { useSaidas } from '@/lib/hooks/useSaidas';
 import { useGoals } from '@/lib/hooks/useGoals';
+import { useAccounts } from '@/lib/hooks/useAccounts';
 import FamilySelector from '@/components/FamilySelector';
 import CreateFamilyForm from '@/components/CreateFamilyForm';
 import StatsCard from '@/components/StatsCard';
+import AccountCard from '@/components/AccountCard';
 import PeriodToggleDual from '@/components/PeriodToggleDual';
 import Link from 'next/link';
 
@@ -32,6 +34,7 @@ export default function Dashboard() {
   const { totalMes: totalEntradaMes, totalAno: totalEntradaAno, totalGeral: totalEntradaGeral, countMes: countEntradaMes, countAno: countEntradaAno, countGeral: countEntradaGeral } = useEntradas(selectedFamilyId);
   const { totalMes: totalSaidaMes, totalAno: totalSaidaAno, totalGeral: totalSaidaGeral, countMes: countSaidaMes, countAno: countSaidaAno, countGeral: countSaidaGeral } = useSaidas(selectedFamilyId);
   const { goals } = useGoals(selectedFamilyId);
+  const { accounts } = useAccounts(selectedFamilyId);
 
   const totalEntrada = periodo === 'mes' ? totalEntradaMes : periodo === 'ano' ? totalEntradaAno : totalEntradaGeral;
   const totalSaida = periodo === 'mes' ? totalSaidaMes : periodo === 'ano' ? totalSaidaAno : totalSaidaGeral;
@@ -531,8 +534,30 @@ export default function Dashboard() {
                 />
               </div>
 
+              {/* Accounts Section */}
+              {accounts && accounts.length > 0 && (
+                <div className="border-t pt-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-semibold text-black dark:text-white">
+                      💳 Contas
+                    </h3>
+                    <Link
+                      href={`/contas?family=${selectedFamilyId}`}
+                      className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"
+                    >
+                      Ver todas →
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {accounts.filter(acc => acc.isActive).map((account) => (
+                      <AccountCard key={account.id} account={account} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Quick Actions */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
                 <Link
                   href={`/entradas?family=${selectedFamilyId}`}
                   className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
@@ -551,6 +576,26 @@ export default function Dashboard() {
                   <div>
                     <h3 className="text-xl font-bold">Adicionar Saída</h3>
                     <p className="text-sm opacity-90">Registrar nova saída</p>
+                  </div>
+                </Link>
+                <Link
+                  href={`/contas?family=${selectedFamilyId}`}
+                  className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg hover:from-teal-600 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl"
+                >
+                  <span className="text-3xl">💳</span>
+                  <div>
+                    <h3 className="text-xl font-bold">Contas</h3>
+                    <p className="text-sm opacity-90">Gerenciar contas</p>
+                  </div>
+                </Link>
+                <Link
+                  href={`/transferencias?family=${selectedFamilyId}`}
+                  className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl"
+                >
+                  <span className="text-3xl">🔄</span>
+                  <div>
+                    <h3 className="text-xl font-bold">Transferências</h3>
+                    <p className="text-sm opacity-90">Entre contas</p>
                   </div>
                 </Link>
                 <Link
