@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { client } from '@/src/db';
 import { auth } from '@/auth';
+import { checkFamilyMembership } from '@/lib/api-helpers';
 
 // GET - Obter detalhes de uma meta específica
 export async function GET(
@@ -17,52 +18,57 @@ export async function GET(
     const { familyId, goalId } = await params;
 
     // Verificar se o usuário é membro da família
-    const member = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const member = await checkFamilyMembership(familyId, session.user.id);
 
     if (!member) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const goal = await prisma.savingsGoal.findFirst({
-      where: {
-        id: goalId,
-        familyId,
-      },
-      include: {
-        contributions: {
-          include: {
-            entrada: {
-              select: {
-                id: true,
-                description: true,
-                date: true,
-              },
-            },
-          },
-          orderBy: {
-            date: 'desc',
-          },
-        },
-        _count: {
-          select: {
-            contributions: true,
-          },
-        },
-      },
-    });
+    const goal = await client`
+      SELECT 
+        sg.*,
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'id', gc.id,
+                'goalId', gc.goal_id,
+                'entradaId', gc.entrada_id,
+                'amount', gc.amount,
+                'description', gc.description,
+                'date', gc.date,
+                'createdAt', gc.created_at,
+                'entrada', CASE 
+                  WHEN e.id IS NOT NULL THEN json_build_object(
+                    'id', e.id,
+                    'description', e.description,
+                    'date', e.date
+                  )
+                  ELSE NULL
+                END
+              ) ORDER BY gc.date DESC
+            )
+            FROM goal_contributions gc
+            LEFT JOIN entradas e ON e.id = gc.entrada_id
+            WHERE gc.goal_id = sg.id
+          ),
+          '[]'::json
+        ) as contributions,
+        (
+          SELECT COUNT(*)::int
+          FROM goal_contributions
+          WHERE goal_id = sg.id
+        ) as contributions_count
+      FROM savings_goals sg
+      WHERE sg.id = ${goalId} AND sg.family_id = ${familyId}
+      LIMIT 1
+    `;
 
-    if (!goal) {
+    if (goal.length === 0) {
       return NextResponse.json({ error: 'Meta não encontrada' }, { status: 404 });
     }
 
-    return NextResponse.json(goal);
+    return NextResponse.json(goal[0]);
   } catch (error) {
     console.error('Error fetching goal:', error);
     return NextResponse.json(
@@ -87,28 +93,20 @@ export async function PUT(
     const { familyId, goalId } = await params;
 
     // Verificar se o usuário é membro da família
-    const member = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const member = await checkFamilyMembership(familyId, session.user.id);
 
     if (!member) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Verificar se a meta existe e pertence à família
-    const existingGoal = await prisma.savingsGoal.findFirst({
-      where: {
-        id: goalId,
-        familyId,
-      },
-    });
+    const existingGoal = await client`
+      SELECT * FROM savings_goals
+      WHERE id = ${goalId} AND family_id = ${familyId}
+      LIMIT 1
+    `;
 
-    if (!existingGoal) {
+    if (existingGoal.length === 0) {
       return NextResponse.json({ error: 'Meta não encontrada' }, { status: 404 });
     }
 
@@ -132,40 +130,61 @@ export async function PUT(
     }
 
     // Se mudou para concluída, adicionar data de conclusão
-    const completedAt = isCompleted && !existingGoal.isCompleted ? new Date() : existingGoal.completedAt;
+    const completedAt = isCompleted && !existingGoal[0].is_completed ? new Date() : existingGoal[0].completed_at;
 
-    const goal = await prisma.savingsGoal.update({
-      where: {
-        id: goalId,
-      },
-      data: {
-        name: name !== undefined ? name : undefined,
-        description: description !== undefined ? description : undefined,
-        targetAmount: finalTargetAmount !== undefined ? finalTargetAmount : undefined,
-        targetDate: targetDate !== undefined ? (targetDate ? new Date(targetDate) : null) : undefined,
-        priority: priority !== undefined ? priority : undefined,
-        isEmergencyFund: isEmergencyFund !== undefined ? isEmergencyFund : undefined,
-        monthlyExpenses: isEmergencyFund !== undefined ? (isEmergencyFund ? monthlyExpenses : null) : undefined,
-        targetMonths: isEmergencyFund !== undefined ? (isEmergencyFund ? targetMonths : null) : undefined,
-        isCompleted: isCompleted !== undefined ? isCompleted : undefined,
-        completedAt,
-      },
-      include: {
-        contributions: {
-          orderBy: {
-            date: 'desc',
-          },
-          take: 5,
-        },
-        _count: {
-          select: {
-            contributions: true,
-          },
-        },
-      },
-    });
+    // Construir query dinâmica apenas com campos fornecidos
+    const updates = [];
+    const values = [];
+    
+    if (name !== undefined) {
+      updates.push('name = $' + (values.length + 1));
+      values.push(name);
+    }
+    if (description !== undefined) {
+      updates.push('description = $' + (values.length + 1));
+      values.push(description);
+    }
+    if (finalTargetAmount !== undefined) {
+      updates.push('target_amount = $' + (values.length + 1));
+      values.push(finalTargetAmount);
+    }
+    if (targetDate !== undefined) {
+      updates.push('target_date = $' + (values.length + 1));
+      values.push(targetDate ? new Date(targetDate) : null);
+    }
+    if (priority !== undefined) {
+      updates.push('priority = $' + (values.length + 1));
+      values.push(priority);
+    }
+    if (isEmergencyFund !== undefined) {
+      updates.push('is_emergency_fund = $' + (values.length + 1));
+      values.push(isEmergencyFund);
+      if (isEmergencyFund) {
+        updates.push('monthly_expenses = $' + (values.length + 1));
+        values.push(monthlyExpenses);
+        updates.push('target_months = $' + (values.length + 1));
+        values.push(targetMonths);
+      } else {
+        updates.push('monthly_expenses = NULL');
+        updates.push('target_months = NULL');
+      }
+    }
+    if (isCompleted !== undefined) {
+      updates.push('is_completed = $' + (values.length + 1));
+      values.push(isCompleted);
+      updates.push('completed_at = $' + (values.length + 1));
+      values.push(completedAt);
+    }
+    
+    updates.push('updated_at = NOW()');
+    
+    values.push(goalId);
+    const goal = await client.unsafe(
+      `UPDATE savings_goals SET ${updates.join(', ')} WHERE id = $${values.length} RETURNING *`,
+      values
+    );
 
-    return NextResponse.json(goal);
+    return NextResponse.json(goal[0]);
   } catch (error) {
     console.error('Error updating goal:', error);
     return NextResponse.json(
@@ -190,36 +209,28 @@ export async function DELETE(
     const { familyId, goalId } = await params;
 
     // Verificar se o usuário é membro da família
-    const member = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const member = await checkFamilyMembership(familyId, session.user.id);
 
     if (!member) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Verificar se a meta existe e pertence à família
-    const existingGoal = await prisma.savingsGoal.findFirst({
-      where: {
-        id: goalId,
-        familyId,
-      },
-    });
+    const existingGoal = await client`
+      SELECT * FROM savings_goals
+      WHERE id = ${goalId} AND family_id = ${familyId}
+      LIMIT 1
+    `;
 
-    if (!existingGoal) {
+    if (existingGoal.length === 0) {
       return NextResponse.json({ error: 'Meta não encontrada' }, { status: 404 });
     }
 
-    await prisma.savingsGoal.delete({
-      where: {
-        id: goalId,
-      },
-    });
+    // Deletar meta (contribuições serão deletadas em cascade)
+    await client`
+      DELETE FROM savings_goals
+      WHERE id = ${goalId}
+    `;
 
     return NextResponse.json({ message: 'Meta deletada com sucesso' });
   } catch (error) {

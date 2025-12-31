@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { client } from '@/src/db';
 import { auth } from '@/auth';
 import { randomBytes } from 'crypto';
+import { checkFamilyAdmin, generateId } from '@/lib/api-helpers';
 
 // GET - Listar convites pendentes da família
 export async function GET(
@@ -14,35 +15,23 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { familyId } = await params;
+    const { familyId} = await params;
 
     // Verificar se o usuário é admin da família
-    const adminMember = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const isAdmin = await checkFamilyAdmin(familyId, session.user.id);
 
-    if (!adminMember || adminMember.role !== 'admin') {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Buscar convites pendentes (não aceitos e não expirados)
-    const invitations = await prisma.familyInvitation.findMany({
-      where: {
-        familyId,
-        acceptedAt: null,
-        expiresAt: {
-          gte: new Date(),
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const invitations = await client`
+      SELECT * FROM family_invitations
+      WHERE family_id = ${familyId}
+        AND accepted_at IS NULL
+        AND expires_at >= NOW()
+      ORDER BY created_at DESC
+    `;
 
     return NextResponse.json(invitations);
   } catch (error) {
@@ -68,16 +57,9 @@ export async function POST(
     const { familyId } = await params;
 
     // Verificar se o usuário é admin da família
-    const adminMember = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const isAdmin = await checkFamilyAdmin(familyId, session.user.id);
 
-    if (!adminMember || adminMember.role !== 'admin') {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -101,21 +83,18 @@ export async function POST(
     }
 
     // Verificar se o email já é membro
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    const existingUser = await client`
+      SELECT * FROM users WHERE email = ${email} LIMIT 1
+    `;
 
-    if (existingUser) {
-      const existingMember = await prisma.familyMember.findUnique({
-        where: {
-          familyId_userId: {
-            familyId,
-            userId: existingUser.id,
-          },
-        },
-      });
+    if (existingUser.length > 0) {
+      const existingMember = await client`
+        SELECT * FROM family_members
+        WHERE family_id = ${familyId} AND user_id = ${existingUser[0].id}
+        LIMIT 1
+      `;
 
-      if (existingMember) {
+      if (existingMember.length > 0) {
         return NextResponse.json(
           { error: 'User is already a member' },
           { status: 400 }
@@ -124,18 +103,16 @@ export async function POST(
     }
 
     // Verificar se já existe um convite pendente
-    const existingInvitation = await prisma.familyInvitation.findFirst({
-      where: {
-        familyId,
-        email,
-        acceptedAt: null,
-        expiresAt: {
-          gte: new Date(),
-        },
-      },
-    });
+    const existingInvitation = await client`
+      SELECT * FROM family_invitations
+      WHERE family_id = ${familyId}
+        AND email = ${email}
+        AND accepted_at IS NULL
+        AND expires_at >= NOW()
+      LIMIT 1
+    `;
 
-    if (existingInvitation) {
+    if (existingInvitation.length > 0) {
       return NextResponse.json(
         { error: 'An invitation is already pending for this email' },
         { status: 400 }
@@ -149,32 +126,31 @@ export async function POST(
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    const invitation = await prisma.familyInvitation.create({
-      data: {
-        familyId,
-        email,
-        token,
-        role,
-        invitedBy: session.user.id,
-        expiresAt,
-      },
-      include: {
-        family: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+    const invitationId = generateId();
+    const invitation = await client`
+      INSERT INTO family_invitations (
+        id, family_id, email, token, role, invited_by, expires_at, created_at
+      )
+      VALUES (
+        ${invitationId}, ${familyId}, ${email}, ${token}, ${role}, 
+        ${session.user.id}, ${expiresAt}, NOW()
+      )
+      RETURNING *
+    `;
+
+    // Buscar dados da família
+    const family = await client`
+      SELECT id, name FROM families WHERE id = ${familyId} LIMIT 1
+    `;
 
     // TODO: Enviar email com o link de convite
     // const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`;
-    // await sendInvitationEmail(email, invitation.family.name, inviteLink);
+    // await sendInvitationEmail(email, family[0].name, inviteLink);
 
     return NextResponse.json(
       {
-        ...invitation,
+        ...invitation[0],
+        family: family[0],
         inviteLink: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/invite/${token}`,
       },
       { status: 201 }
@@ -211,26 +187,17 @@ export async function DELETE(
     }
 
     // Verificar se o usuário é admin da família
-    const adminMember = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const isAdmin = await checkFamilyAdmin(familyId, session.user.id);
 
-    if (!adminMember || adminMember.role !== 'admin') {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Deletar o convite
-    await prisma.familyInvitation.delete({
-      where: {
-        id: invitationId,
-        familyId, // Garantir que o convite pertence à família
-      },
-    });
+    await client`
+      DELETE FROM family_invitations
+      WHERE id = ${invitationId} AND family_id = ${familyId}
+    `;
 
     return NextResponse.json({ message: 'Invitation cancelled' });
   } catch (error) {

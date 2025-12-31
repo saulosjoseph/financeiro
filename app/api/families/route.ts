@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { client } from '@/src/db';
 import { auth } from '@/auth';
 
 // GET - Listar famílias do usuário
@@ -13,35 +13,48 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const families = await prisma.family.findMany({
-      where: {
-        members: {
-          some: {
-            userId: session.user.id,
-          },
-        },
-      },
-      include: {
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                image: true,
-              },
-            },
-          },
-        },
-        _count: {
-          select: {
-            entradas: true,
-            saidas: true,
-          },
-        },
-      },
-    });
+    // Query SQL raw para buscar famílias do usuário
+    const families = await client`
+      SELECT 
+        f.*,
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', fm.id,
+              'familyId', fm.family_id,
+              'userId', fm.user_id,
+              'role', fm.role,
+              'createdAt', fm.created_at,
+              'user', json_build_object(
+                'id', u.id,
+                'name', u.name,
+                'email', u.email,
+                'image', u.image
+              )
+            )
+          )
+          FROM family_members fm
+          JOIN users u ON u.id = fm.user_id
+          WHERE fm.family_id = f.id
+        ) as members,
+        (
+          SELECT COUNT(*)::int
+          FROM entradas
+          WHERE family_id = f.id
+        ) as entradas_count,
+        (
+          SELECT COUNT(*)::int
+          FROM saidas
+          WHERE family_id = f.id
+        ) as saidas_count
+      FROM families f
+      WHERE EXISTS (
+        SELECT 1 
+        FROM family_members fm 
+        WHERE fm.family_id = f.id 
+        AND fm.user_id = ${session.user.id}
+      )
+    `;
 
     return NextResponse.json(families);
   } catch (error) {
@@ -79,33 +92,51 @@ export async function POST(request: Request) {
 
     console.log('POST /api/families - Creating family:', name, 'for user:', session.user.id);
 
-    const family = await prisma.family.create({
-      data: {
-        name,
-        members: {
-          create: {
-            userId: session.user.id,
-            role: 'admin',
-          },
-        },
-      },
-      include: {
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                image: true,
-              },
-            },
-          },
-        },
-      },
+    // Usar transaction para criar família e membro atomicamente
+    const familyId = crypto.randomUUID();
+    const memberId = crypto.randomUUID();
+    
+    await client.begin(async (tx) => {
+      await tx`
+        INSERT INTO families (id, name, created_at, updated_at)
+        VALUES (${familyId}, ${name}, NOW(), NOW())
+      `;
+      
+      await tx`
+        INSERT INTO family_members (id, family_id, user_id, role, created_at)
+        VALUES (${memberId}, ${familyId}, ${session.user.id}, 'admin', NOW())
+      `;
     });
 
-    return NextResponse.json(family, { status: 201 });
+    // Buscar família criada com membros
+    const family = await client`
+      SELECT 
+        f.*,
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', fm.id,
+              'familyId', fm.family_id,
+              'userId', fm.user_id,
+              'role', fm.role,
+              'createdAt', fm.created_at,
+              'user', json_build_object(
+                'id', u.id,
+                'name', u.name,
+                'email', u.email,
+                'image', u.image
+              )
+            )
+          )
+          FROM family_members fm
+          JOIN users u ON u.id = fm.user_id
+          WHERE fm.family_id = f.id
+        ) as members
+      FROM families f
+      WHERE f.id = ${familyId}
+    `;
+
+    return NextResponse.json(family[0], { status: 201 });
   } catch (error) {
     console.error('Error creating family:', error);
     if (error instanceof Error) {

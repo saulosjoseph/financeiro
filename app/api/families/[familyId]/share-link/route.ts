@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { client } from '@/src/db';
 import { auth } from '@/auth';
 import { randomBytes } from 'crypto';
+import { checkFamilyAdmin, generateId } from '@/lib/api-helpers';
 
 // GET - Listar links ativos da família
 export async function GET(
@@ -17,32 +18,20 @@ export async function GET(
     const { familyId } = await params;
 
     // Verificar se o usuário é admin da família
-    const adminMember = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const isAdmin = await checkFamilyAdmin(familyId, session.user.id);
 
-    if (!adminMember || adminMember.role !== 'admin') {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Buscar links não utilizados e não expirados
-    const shareLinks = await prisma.familyShareLink.findMany({
-      where: {
-        familyId,
-        usedAt: null,
-        expiresAt: {
-          gte: new Date(),
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const shareLinks = await client`
+      SELECT * FROM family_share_links
+      WHERE family_id = ${familyId}
+        AND used_at IS NULL
+        AND expires_at >= NOW()
+      ORDER BY created_at DESC
+    `;
 
     return NextResponse.json(shareLinks);
   } catch (error) {
@@ -68,16 +57,9 @@ export async function POST(
     const { familyId } = await params;
 
     // Verificar se o usuário é admin da família
-    const adminMember = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const isAdmin = await checkFamilyAdmin(familyId, session.user.id);
 
-    if (!adminMember || adminMember.role !== 'admin') {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -99,27 +81,25 @@ export async function POST(
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
-    const shareLink = await prisma.familyShareLink.create({
-      data: {
-        familyId,
-        token,
-        role,
-        createdBy: session.user.id,
-        expiresAt,
-      },
-      include: {
-        family: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+    const linkId = generateId();
+    const shareLink = await client`
+      INSERT INTO family_share_links (
+        id, family_id, token, role, created_by, expires_at, created_at
+      )
+      VALUES (
+        ${linkId}, ${familyId}, ${token}, ${role}, ${session.user.id}, ${expiresAt}, NOW()
+      )
+      RETURNING *
+    `;
+
+    const family = await client`
+      SELECT id, name FROM families WHERE id = ${familyId} LIMIT 1
+    `;
 
     return NextResponse.json(
       {
-        ...shareLink,
+        ...shareLink[0],
+        family: family[0],
         shareUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/join/${token}`,
       },
       { status: 201 }
@@ -156,26 +136,17 @@ export async function DELETE(
     }
 
     // Verificar se o usuário é admin da família
-    const adminMember = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const isAdmin = await checkFamilyAdmin(familyId, session.user.id);
 
-    if (!adminMember || adminMember.role !== 'admin') {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Deletar o link
-    await prisma.familyShareLink.delete({
-      where: {
-        id: linkId,
-        familyId, // Garantir que o link pertence à família
-      },
-    });
+    await client`
+      DELETE FROM family_share_links
+      WHERE id = ${linkId} AND family_id = ${familyId}
+    `;
 
     return NextResponse.json({ message: 'Share link deleted' });
   } catch (error) {

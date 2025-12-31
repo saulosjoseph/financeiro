@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { client } from '@/src/db';
 import { auth } from '@/auth';
+import { generateId } from '@/lib/api-helpers';
 
 // POST - Aceitar convite
 export async function POST(
@@ -16,27 +17,27 @@ export async function POST(
     const { token } = await params;
 
     // Buscar convite pelo token
-    const invitation = await prisma.familyInvitation.findUnique({
-      where: { token },
-      include: {
-        family: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+    const invitation = await client`
+      SELECT 
+        fi.*,
+        json_build_object('id', f.id, 'name', f.name) as family
+      FROM family_invitations fi
+      JOIN families f ON f.id = fi.family_id
+      WHERE fi.token = ${token}
+      LIMIT 1
+    `;
 
-    if (!invitation) {
+    if (invitation.length === 0) {
       return NextResponse.json(
         { error: 'Invitation not found' },
         { status: 404 }
       );
     }
 
+    const inv = invitation[0];
+
     // Verificar se o convite já foi aceito
-    if (invitation.acceptedAt) {
+    if (inv.accepted_at) {
       return NextResponse.json(
         { error: 'Invitation already accepted' },
         { status: 400 }
@@ -44,7 +45,7 @@ export async function POST(
     }
 
     // Verificar se o convite expirou
-    if (invitation.expiresAt < new Date()) {
+    if (new Date(inv.expires_at) < new Date()) {
       return NextResponse.json(
         { error: 'Invitation expired' },
         { status: 400 }
@@ -52,7 +53,7 @@ export async function POST(
     }
 
     // Verificar se o email do usuário logado corresponde ao email do convite
-    if (invitation.email.toLowerCase() !== session.user.email.toLowerCase()) {
+    if (inv.email.toLowerCase() !== session.user.email.toLowerCase()) {
       return NextResponse.json(
         { error: 'This invitation was sent to a different email address' },
         { status: 403 }
@@ -60,56 +61,50 @@ export async function POST(
     }
 
     // Verificar se o usuário já é membro
-    const existingMember = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId: invitation.familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const existingMember = await client`
+      SELECT * FROM family_members
+      WHERE family_id = ${inv.family_id} AND user_id = ${session.user.id}
+      LIMIT 1
+    `;
 
-    if (existingMember) {
+    if (existingMember.length > 0) {
       return NextResponse.json(
         { error: 'You are already a member of this family' },
         { status: 400 }
       );
     }
 
-    // Criar membro e marcar convite como aceito
-    const [member, updatedInvitation] = await prisma.$transaction([
-      prisma.familyMember.create({
-        data: {
-          familyId: invitation.familyId,
-          userId: session.user.id,
-          role: invitation.role,
-        },
-        include: {
-          family: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
-          },
-        },
-      }),
-      prisma.familyInvitation.update({
-        where: { id: invitation.id },
-        data: { acceptedAt: new Date() },
-      }),
-    ]);
+    // Criar membro e marcar convite como aceito em transação
+    const memberId = generateId();
+    await client.begin(async (tx) => {
+      await tx`
+        INSERT INTO family_members (id, family_id, user_id, role, created_at)
+        VALUES (${memberId}, ${inv.family_id}, ${session.user.id}, ${inv.role}, NOW())
+      `;
+      
+      await tx`
+        UPDATE family_invitations
+        SET accepted_at = NOW()
+        WHERE id = ${inv.id}
+      `;
+    });
+
+    // Buscar membro criado com detalhes
+    const member = await client`
+      SELECT 
+        fm.*,
+        json_build_object('id', f.id, 'name', f.name) as family,
+        json_build_object('id', u.id, 'name', u.name, 'email', u.email, 'image', u.image) as user
+      FROM family_members fm
+      JOIN families f ON f.id = fm.family_id
+      JOIN users u ON u.id = fm.user_id
+      WHERE fm.id = ${memberId}
+      LIMIT 1
+    `;
 
     return NextResponse.json({
       message: 'Invitation accepted successfully',
-      member,
+      member: member[0],
     });
   } catch (error) {
     console.error('Error accepting invitation:', error);
@@ -128,27 +123,27 @@ export async function GET(
   try {
     const { token } = await params;
 
-    const invitation = await prisma.familyInvitation.findUnique({
-      where: { token },
-      include: {
-        family: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+    const invitation = await client`
+      SELECT 
+        fi.*,
+        f.name as family_name
+      FROM family_invitations fi
+      JOIN families f ON f.id = fi.family_id
+      WHERE fi.token = ${token}
+      LIMIT 1
+    `;
 
-    if (!invitation) {
+    if (invitation.length === 0) {
       return NextResponse.json(
         { error: 'Invitation not found' },
         { status: 404 }
       );
     }
 
+    const inv = invitation[0];
+
     // Verificar se o convite já foi aceito
-    if (invitation.acceptedAt) {
+    if (inv.accepted_at) {
       return NextResponse.json(
         { error: 'Invitation already accepted' },
         { status: 400 }
@@ -156,7 +151,7 @@ export async function GET(
     }
 
     // Verificar se o convite expirou
-    if (invitation.expiresAt < new Date()) {
+    if (new Date(inv.expires_at) < new Date()) {
       return NextResponse.json(
         { error: 'Invitation expired' },
         { status: 400 }
@@ -165,10 +160,10 @@ export async function GET(
 
     // Retornar informações do convite (sem informações sensíveis)
     return NextResponse.json({
-      familyName: invitation.family.name,
-      email: invitation.email,
-      role: invitation.role,
-      expiresAt: invitation.expiresAt,
+      familyName: inv.family_name,
+      email: inv.email,
+      role: inv.role,
+      expiresAt: inv.expires_at,
     });
   } catch (error) {
     console.error('Error fetching invitation:', error);

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { client } from '@/src/db';
 import { auth } from '@/auth';
+import { checkFamilyMembership, generateId } from '@/lib/api-helpers';
 
 // GET - Listar metas de uma família
 export async function GET(
@@ -17,42 +18,39 @@ export async function GET(
     const { familyId } = await params;
 
     // Verificar se o usuário é membro da família
-    const member = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const member = await checkFamilyMembership(familyId, session.user.id);
 
     if (!member) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const goals = await prisma.savingsGoal.findMany({
-      where: {
-        familyId,
-      },
-      include: {
-        contributions: {
-          orderBy: {
-            date: 'desc',
-          },
-          take: 5, // últimas 5 contribuições
-        },
-        _count: {
-          select: {
-            contributions: true,
-          },
-        },
-      },
-      orderBy: [
-        { isCompleted: 'asc' },
-        { priority: 'desc' },
-        { createdAt: 'desc' },
-      ],
-    });
+    const goals = await client`
+      SELECT 
+        sg.*,
+        COALESCE(
+          (
+            SELECT json_agg(gc.* ORDER BY gc.date DESC)
+            FROM (
+              SELECT * FROM goal_contributions 
+              WHERE goal_id = sg.id 
+              ORDER BY date DESC 
+              LIMIT 5
+            ) gc
+          ),
+          '[]'::json
+        ) as contributions,
+        (
+          SELECT COUNT(*)::int
+          FROM goal_contributions
+          WHERE goal_id = sg.id
+        ) as contributions_count
+      FROM savings_goals sg
+      WHERE sg.family_id = ${familyId}
+      ORDER BY 
+        sg.is_completed ASC,
+        sg.priority DESC,
+        sg.created_at DESC
+    `;
 
     return NextResponse.json(goals);
   } catch (error) {
@@ -79,14 +77,7 @@ export async function POST(
     const { familyId } = await params;
 
     // Verificar se o usuário é membro da família
-    const member = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const member = await checkFamilyMembership(familyId, session.user.id);
 
     if (!member) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -125,29 +116,27 @@ export async function POST(
       finalTargetAmount = monthlyExpenses * targetMonths;
     }
 
-    const goal = await prisma.savingsGoal.create({
-      data: {
-        familyId,
-        name,
-        description,
-        targetAmount: finalTargetAmount,
-        targetDate: targetDate ? new Date(targetDate) : null,
-        priority: priority !== undefined ? priority : 0,
-        isEmergencyFund: isEmergencyFund || false,
-        monthlyExpenses: isEmergencyFund ? monthlyExpenses : null,
-        targetMonths: isEmergencyFund ? targetMonths : null,
-      },
-      include: {
-        contributions: true,
-        _count: {
-          select: {
-            contributions: true,
-          },
-        },
-      },
-    });
+    const goalId = generateId();
+    const goal = await client`
+      INSERT INTO savings_goals (
+        id, family_id, name, description, target_amount, target_date,
+        priority, is_emergency_fund, monthly_expenses, target_months,
+        created_at, updated_at
+      )
+      VALUES (
+        ${goalId}, ${familyId}, ${name}, ${description || null}, ${finalTargetAmount}, 
+        ${targetDate ? new Date(targetDate) : null}, ${priority !== undefined ? priority : 0}, 
+        ${isEmergencyFund || false}, ${isEmergencyFund ? monthlyExpenses : null}, 
+        ${isEmergencyFund ? targetMonths : null}, NOW(), NOW()
+      )
+      RETURNING *
+    `;
 
-    return NextResponse.json(goal);
+    return NextResponse.json({
+      ...goal[0],
+      contributions: [],
+      contributions_count: 0
+    });
   } catch (error) {
     console.error('Error creating goal:', error);
     return NextResponse.json(

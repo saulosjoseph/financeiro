@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { client } from '@/src/db';
+import { generateId } from '@/lib/api-helpers';
 
 export async function GET() {
   try {
-    const users = await prisma.user.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const users = await client`
+      SELECT * FROM users
+      ORDER BY created_at DESC
+    `;
     
     return NextResponse.json(users);
   } catch (error) {
@@ -31,14 +31,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await prisma.user.create({
-      data: {
-        email,
-        name,
-      },
-    });
+    const id = generateId();
+    const user = await client`
+      INSERT INTO users (id, email, name, created_at, updated_at)
+      VALUES (${id}, ${email}, ${name}, NOW(), NOW())
+      RETURNING *
+    `;
 
-    return NextResponse.json(user, { status: 201 });
+    return NextResponse.json(user[0], { status: 201 });
   } catch (error) {
     console.error('Error creating user:', error);
     return NextResponse.json(

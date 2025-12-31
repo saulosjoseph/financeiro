@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { prisma } from '@/lib/db';
+import { client } from '@/src/db';
+import { checkFamilyMembership, generateId } from '@/lib/api-helpers';
 
 // GET - Listar tags de uma família
 export async function GET(
@@ -17,23 +18,17 @@ export async function GET(
     const { familyId } = await params;
 
     // Verificar se o usuário é membro da família
-    const member = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const member = await checkFamilyMembership(familyId, session.user.id);
 
     if (!member) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const tags = await prisma.tag.findMany({
-      where: { familyId },
-      orderBy: { name: 'asc' },
-    });
+    const tags = await client`
+      SELECT * FROM tags
+      WHERE family_id = ${familyId}
+      ORDER BY name ASC
+    `;
 
     return NextResponse.json(tags);
   } catch (error) {
@@ -60,14 +55,7 @@ export async function POST(
     const { familyId } = await params;
 
     // Verificar se o usuário é membro da família
-    const member = await prisma.familyMember.findUnique({
-      where: {
-        familyId_userId: {
-          familyId,
-          userId: session.user.id,
-        },
-      },
-    });
+    const member = await checkFamilyMembership(familyId, session.user.id);
 
     if (!member) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -82,26 +70,28 @@ export async function POST(
       );
     }
 
-    const tag = await prisma.tag.create({
-      data: {
-        name: name.trim(),
-        color: color || '#6B7280',
-        familyId,
-      },
-    });
-
-    return NextResponse.json(tag, { status: 201 });
-  } catch (error: any) {
-    console.error('Error creating tag:', error);
+    const id = generateId();
     
-    // Verificar erro de duplicação
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'Tag with this name already exists' },
-        { status: 409 }
-      );
+    try {
+      const tag = await client`
+        INSERT INTO tags (id, name, color, family_id, created_at)
+        VALUES (${id}, ${name.trim()}, ${color || '#6B7280'}, ${familyId}, NOW())
+        RETURNING *
+      `;
+      
+      return NextResponse.json(tag[0], { status: 201 });
+    } catch (dbError: any) {
+      // Verificar erro de duplicação (unique constraint violation)
+      if (dbError.code === '23505') {
+        return NextResponse.json(
+          { error: 'Tag with this name already exists' },
+          { status: 409 }
+        );
+      }
+      throw dbError;
     }
-    
+  } catch (error) {
+    console.error('Error creating tag:', error);
     return NextResponse.json(
       { error: 'Failed to create tag' },
       { status: 500 }
