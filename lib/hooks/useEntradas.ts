@@ -26,6 +26,10 @@ export interface Entrada {
   date: string;
   user: User;
   tags: EntradaTag[];
+  isRecurring?: boolean;
+  recurringType?: string | null;
+  recurringDay?: number | null;
+  recurringEndDate?: string | null;
 }
 
 export type PeriodType = 'mes' | 'ano' | 'geral';
@@ -99,6 +103,41 @@ export function useEntradas(familyId?: string | null) {
     return data?.length || 0;
   }, [data]);
 
+  // Filtrar entradas recorrentes
+  const recurringEntradas = useMemo(() => {
+    return data?.filter(entrada => entrada.isRecurring) || [];
+  }, [data]);
+
+  // Calcular impacto mensal das recorrências
+  const recurringMonthlyImpact = useMemo(() => {
+    if (!recurringEntradas.length) return 0;
+    
+    return recurringEntradas.reduce((sum, entrada) => {
+      const amount = parseFloat(entrada.amount);
+      const type = entrada.recurringType;
+      
+      // Converter para impacto mensal
+      switch (type) {
+        case 'weekly':
+          return sum + (amount * 4.33);
+        case 'biweekly':
+          return sum + (amount * 2.165);
+        case 'monthly':
+          return sum + amount;
+        case 'bimonthly':
+          return sum + (amount / 2);
+        case 'quarterly':
+          return sum + (amount / 3);
+        case 'semiannual':
+          return sum + (amount / 6);
+        case 'annual':
+          return sum + (amount / 12);
+        default:
+          return sum + amount;
+      }
+    }, 0);
+  }, [recurringEntradas]);
+
   // Função para obter label do período
   const getPeriodLabel = (period: PeriodType): string => {
     const now = new Date();
@@ -146,6 +185,8 @@ export function useEntradas(familyId?: string | null) {
     countMes,
     countAno,
     countGeral,
+    recurringEntradas,
+    recurringMonthlyImpact,
     getPeriodLabel,
     getFilteredData,
     mutate,

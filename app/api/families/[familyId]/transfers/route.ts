@@ -117,7 +117,7 @@ export async function POST(
       );
     }
 
-    const transferDate = date ? new Date(date) : new Date();
+    const transferDate = date ? new Date(date).toISOString() : new Date().toISOString();
 
     // Criar transferência e transações associadas em uma transação
     const transferId = generateId();

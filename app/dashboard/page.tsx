@@ -31,8 +31,26 @@ export default function Dashboard() {
   const [isSavingBalance, setIsSavingBalance] = useState(false);
 
   const { families, selectedFamily, mutate: mutateFamilies } = useFamily(selectedFamilyId);
-  const { totalMes: totalEntradaMes, totalAno: totalEntradaAno, totalGeral: totalEntradaGeral, countMes: countEntradaMes, countAno: countEntradaAno, countGeral: countEntradaGeral } = useEntradas(selectedFamilyId);
-  const { totalMes: totalSaidaMes, totalAno: totalSaidaAno, totalGeral: totalSaidaGeral, countMes: countSaidaMes, countAno: countSaidaAno, countGeral: countSaidaGeral } = useSaidas(selectedFamilyId);
+  const { 
+    totalMes: totalEntradaMes, 
+    totalAno: totalEntradaAno, 
+    totalGeral: totalEntradaGeral, 
+    countMes: countEntradaMes, 
+    countAno: countEntradaAno, 
+    countGeral: countEntradaGeral,
+    recurringEntradas,
+    recurringMonthlyImpact: recurringEntradasImpact
+  } = useEntradas(selectedFamilyId);
+  const { 
+    totalMes: totalSaidaMes, 
+    totalAno: totalSaidaAno, 
+    totalGeral: totalSaidaGeral, 
+    countMes: countSaidaMes, 
+    countAno: countSaidaAno, 
+    countGeral: countSaidaGeral,
+    recurringSaidas,
+    recurringMonthlyImpact: recurringSaidasImpact
+  } = useSaidas(selectedFamilyId);
   const { goals } = useGoals(selectedFamilyId);
   const { accounts } = useAccounts(selectedFamilyId);
 
@@ -41,6 +59,19 @@ export default function Dashboard() {
   const initialBalance = selectedFamily?.initialBalance ? parseFloat(selectedFamily.initialBalance.toString()) : 0;
   const balance = periodo === 'geral' ? initialBalance + totalEntrada - totalSaida : totalEntrada - totalSaida;
   const isAdmin = selectedFamily?.members.find(m => m.user.id === session?.user?.id)?.role === 'admin';
+
+  const getRecurringTypeLabel = (type: string | null | undefined) => {
+    const labels: Record<string, string> = {
+      weekly: 'Semanal',
+      biweekly: 'Quinzenal',
+      monthly: 'Mensal',
+      bimonthly: 'Bimestral',
+      quarterly: 'Trimestral',
+      semiannual: 'Semestral',
+      annual: 'Anual',
+    };
+    return labels[type || ''] || 'Mensal';
+  };
 
   // Save selected family to localStorage
   useEffect(() => {
@@ -557,78 +588,182 @@ export default function Dashboard() {
               )}
 
               {/* Quick Actions */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Link
                   href={`/entradas?family=${selectedFamilyId}`}
-                  className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+                  className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-3xl">💵</span>
-                  <div>
-                    <h3 className="text-xl font-bold">Adicionar Entrada</h3>
-                    <p className="text-sm opacity-90">Registrar nova entrada</p>
-                  </div>
+                  <span className="text-4xl">💵</span>
+                  <h3 className="text-lg font-bold text-center">Adicionar Entrada</h3>
+                  <p className="text-sm opacity-90 text-center">Registrar nova entrada</p>
                 </Link>
                 <Link
                   href={`/saidas?family=${selectedFamilyId}`}
-                  className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl"
+                  className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-3xl">💳</span>
-                  <div>
-                    <h3 className="text-xl font-bold">Adicionar Saída</h3>
-                    <p className="text-sm opacity-90">Registrar nova saída</p>
-                  </div>
+                  <span className="text-4xl">💳</span>
+                  <h3 className="text-lg font-bold text-center">Adicionar Saída</h3>
+                  <p className="text-sm opacity-90 text-center">Registrar nova saída</p>
                 </Link>
                 <Link
                   href={`/contas?family=${selectedFamilyId}`}
-                  className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg hover:from-teal-600 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl"
+                  className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-xl hover:from-teal-600 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-3xl">💳</span>
-                  <div>
-                    <h3 className="text-xl font-bold">Contas</h3>
-                    <p className="text-sm opacity-90">Gerenciar contas</p>
-                  </div>
+                  <span className="text-4xl">💳</span>
+                  <h3 className="text-lg font-bold text-center">Contas</h3>
+                  <p className="text-sm opacity-90 text-center">Gerenciar contas</p>
                 </Link>
                 <Link
                   href={`/transferencias?family=${selectedFamilyId}`}
-                  className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl"
+                  className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-xl hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-3xl">🔄</span>
-                  <div>
-                    <h3 className="text-xl font-bold">Transferências</h3>
-                    <p className="text-sm opacity-90">Entre contas</p>
-                  </div>
+                  <span className="text-4xl">🔄</span>
+                  <h3 className="text-lg font-bold text-center">Transferências</h3>
+                  <p className="text-sm opacity-90 text-center">Entre contas</p>
                 </Link>
                 <Link
                   href={`/transacoes?family=${selectedFamilyId}`}
-                  className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl"
+                  className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-3xl">📋</span>
-                  <div>
-                    <h3 className="text-xl font-bold">Transações</h3>
-                    <p className="text-sm opacity-90">Ver e editar</p>
-                  </div>
+                  <span className="text-4xl">📋</span>
+                  <h3 className="text-lg font-bold text-center">Transações</h3>
+                  <p className="text-sm opacity-90 text-center">Ver e editar</p>
                 </Link>
                 <Link
                   href={`/analises?family=${selectedFamilyId}`}
-                  className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+                  className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-3xl">📊</span>
-                  <div>
-                    <h3 className="text-xl font-bold">Ver Análises</h3>
-                    <p className="text-sm opacity-90">Relatórios e gráficos</p>
-                  </div>
+                  <span className="text-4xl">📊</span>
+                  <h3 className="text-lg font-bold text-center">Ver Análises</h3>
+                  <p className="text-sm opacity-90 text-center">Relatórios e gráficos</p>
                 </Link>
                 <Link
                   href={`/metas?family=${selectedFamilyId}`}
-                  className="flex items-center justify-center gap-3 p-6 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
+                  className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-3xl">🎯</span>
-                  <div>
-                    <h3 className="text-xl font-bold">Metas</h3>
-                    <p className="text-sm opacity-90">Ver e gerenciar</p>
-                  </div>
+                  <span className="text-4xl">🎯</span>
+                  <h3 className="text-lg font-bold text-center">Metas</h3>
+                  <p className="text-sm opacity-90 text-center">Ver e gerenciar</p>
                 </Link>
               </div>
+
+              {/* Recurring Transactions Section */}
+              {((recurringSaidas && recurringSaidas.length > 0) || (recurringEntradas && recurringEntradas.length > 0)) && (
+                <div className="border-t pt-6">
+                  <h3 className="text-xl font-semibold text-black dark:text-white mb-4">
+                    🔄 Transações Recorrentes (Impacto Mensal)
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {/* Entradas Fixas */}
+                    {recurringEntradas && recurringEntradas.length > 0 && (
+                      <div>
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="font-semibold text-green-700 dark:text-green-400">
+                            📈 Entradas Fixas
+                          </h4>
+                          <span className="text-lg font-bold text-green-700 dark:text-green-400">
+                            + R$ {recurringEntradasImpact.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {recurringEntradas.slice(0, 5).map((entrada) => (
+                            <div
+                              key={entrada.id}
+                              className="bg-green-50 dark:bg-green-950 p-3 rounded border border-green-200 dark:border-green-800"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                                    {entrada.description || entrada.source || 'Entrada'}
+                                  </p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                                    {getRecurringTypeLabel(entrada.recurringType)}
+                                    {entrada.recurringDay && ` • Dia ${entrada.recurringDay}`}
+                                  </p>
+                                </div>
+                                <span className="text-sm font-semibold text-green-700 dark:text-green-400 ml-2">
+                                  R$ {parseFloat(entrada.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                          {recurringEntradas.length > 5 && (
+                            <Link
+                              href={`/entradas?family=${selectedFamilyId}`}
+                              className="block text-center text-xs text-green-600 hover:text-green-700 dark:text-green-400 py-2"
+                            >
+                              Ver todas as {recurringEntradas.length} entradas fixas →
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Gastos Fixos */}
+                    {recurringSaidas && recurringSaidas.length > 0 && (
+                      <div>
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="font-semibold text-red-700 dark:text-red-400">
+                            📉 Gastos Fixos
+                          </h4>
+                          <span className="text-lg font-bold text-red-700 dark:text-red-400">
+                            - R$ {recurringSaidasImpact.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {recurringSaidas.slice(0, 5).map((saida) => (
+                            <div
+                              key={saida.id}
+                              className="bg-red-50 dark:bg-red-950 p-3 rounded border border-red-200 dark:border-red-800"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                                    {saida.description || saida.category || 'Saída'}
+                                  </p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                                    {getRecurringTypeLabel(saida.recurringType)}
+                                    {saida.recurringDay && ` • Dia ${saida.recurringDay}`}
+                                  </p>
+                                </div>
+                                <span className="text-sm font-semibold text-red-700 dark:text-red-400 ml-2">
+                                  R$ {parseFloat(saida.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                          {recurringSaidas.length > 5 && (
+                            <Link
+                              href={`/saidas?family=${selectedFamilyId}`}
+                              className="block text-center text-xs text-red-600 hover:text-red-700 dark:text-red-400 py-2"
+                            >
+                              Ver todos os {recurringSaidas.length} gastos fixos →
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Resumo Mensal */}
+                  <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        💰 Fluxo Recorrente Mensal Estimado:
+                      </span>
+                      <span className={`text-xl font-bold ${
+                        (recurringEntradasImpact - recurringSaidasImpact) >= 0
+                          ? 'text-green-700 dark:text-green-400'
+                          : 'text-red-700 dark:text-red-400'
+                      }`}>
+                        {(recurringEntradasImpact - recurringSaidasImpact) >= 0 ? '+' : ''}
+                        R$ {(recurringEntradasImpact - recurringSaidasImpact).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Goals Summary */}
               {goals && Array.isArray(goals) && goals.length > 0 && (

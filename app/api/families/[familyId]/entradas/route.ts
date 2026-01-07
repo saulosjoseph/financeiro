@@ -32,7 +32,20 @@ export async function GET(
 
     const entradas = await client`
       SELECT 
-        e.*,
+        e.id,
+        e.family_id as "familyId",
+        e.account_id as "accountId",
+        e.user_id as "userId",
+        e.amount,
+        e.description,
+        e.source,
+        e.date,
+        e.is_recurring as "isRecurring",
+        e.recurring_type as "recurringType",
+        e.recurring_day as "recurringDay",
+        e.recurring_end_date as "recurringEndDate",
+        e.created_at as "createdAt",
+        e.updated_at as "updatedAt",
         json_build_object(
           'id', u.id,
           'name', u.name,
@@ -157,8 +170,8 @@ export async function POST(
     }
 
     const entradaId = generateId();
-    const entradaDate = date ? new Date(date) : new Date();
-    const recurringEndDateParsed = isRecurring && recurringEndDate ? new Date(recurringEndDate) : null;
+    const entradaDate = date ? new Date(date).toISOString() : new Date().toISOString();
+    const recurringEndDateParsed = isRecurring && recurringEndDate ? new Date(recurringEndDate).toISOString() : null;
 
     // Inserir entrada usando transação
     await client.begin(async (tx) => {
@@ -304,7 +317,7 @@ export async function PUT(
           amount = COALESCE(${amount}, amount),
           description = COALESCE(${description}, description),
           source = COALESCE(${source}, source),
-          date = COALESCE(${date ? new Date(date) : null}, date),
+          date = COALESCE(${date ? new Date(date).toISOString() : null}, date),
           updated_at = NOW()
         WHERE id = ${id}
       `;

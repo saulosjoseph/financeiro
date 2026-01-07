@@ -130,7 +130,7 @@ export async function POST(
     await client.begin(async (tx) => {
       await tx`
         INSERT INTO goal_contributions (id, goal_id, entrada_id, amount, description, date, created_at)
-        VALUES (${contributionId}, ${goalId}, ${entradaId || null}, ${amount}, ${description || null}, ${date ? new Date(date) : new Date()}, NOW())
+        VALUES (${contributionId}, ${goalId}, ${entradaId || null}, ${amount}, ${description || null}, ${date ? new Date(date).toISOString() : new Date().toISOString()}, NOW())
       `;
       
       await tx`

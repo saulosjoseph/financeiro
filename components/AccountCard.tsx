@@ -47,8 +47,8 @@ export default function AccountCard({ account, onClick }: AccountCardProps) {
         <div className="flex items-center gap-2">
           <span className="text-2xl">{account.icon}</span>
           <div>
-            <h3 className="font-semibold text-gray-900">{account.name}</h3>
-            <p className="text-xs text-gray-500">{getTypeLabel(account.type)}</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white">{account.name}</h3>
+            <p className="text-xs text-gray-600 dark:text-gray-300">{getTypeLabel(account.type)}</p>
           </div>
         </div>
         {account.isDefault && (
@@ -60,18 +60,18 @@ export default function AccountCard({ account, onClick }: AccountCardProps) {
 
       <div className="space-y-2">
         <div>
-          <p className="text-xs text-gray-500 mb-1">
+          <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">
             {isCreditCard ? 'Fatura Atual' : 'Saldo'}
           </p>
           <p
             className={`text-2xl font-bold ${
               isCreditCard
                 ? isNegative
-                  ? 'text-red-600'
-                  : 'text-green-600'
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-green-600 dark:text-green-400'
                 : isNegative
-                ? 'text-red-600'
-                : 'text-gray-900'
+                ? 'text-red-600 dark:text-red-400'
+                : 'text-gray-900 dark:text-white'
             }`}
           >
             {isCreditCard && isNegative ? '-' : ''}
@@ -81,7 +81,7 @@ export default function AccountCard({ account, onClick }: AccountCardProps) {
 
         {isCreditCard && account.creditLimit && (
           <div>
-            <div className="flex justify-between text-xs text-gray-600 mb-1">
+            <div className="flex justify-between text-xs text-gray-600 dark:text-gray-300 mb-1">
               <span>Limite disponível</span>
               <span>{creditUtilization.toFixed(0)}% usado</span>
             </div>
@@ -97,19 +97,19 @@ export default function AccountCard({ account, onClick }: AccountCardProps) {
                 style={{ width: `${Math.min(creditUtilization, 100)}%` }}
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
               Limite: {formatCurrency(account.creditLimit)}
             </p>
           </div>
         )}
 
         {account.description && (
-          <p className="text-sm text-gray-600 pt-2 border-t border-gray-200">
+          <p className="text-sm text-gray-600 dark:text-gray-300 pt-2 border-t border-gray-200 dark:border-gray-700">
             {account.description}
           </p>
         )}
 
-        <div className="flex gap-4 text-xs text-gray-500 pt-2 border-t border-gray-200">
+        <div className="flex gap-4 text-xs text-gray-600 dark:text-gray-300 pt-2 border-t border-gray-200 dark:border-gray-700">
           <span>📈 {account.entradasCount || 0} entradas</span>
           <span>📉 {account.saidasCount || 0} saídas</span>
         </div>
