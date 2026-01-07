@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { TrendingUp } from 'lucide-react';
 import { useEntradas, PeriodType } from '@/lib/hooks/useEntradas';
 import { useTags } from '@/lib/hooks/useTags';
 import { useFamily } from '@/lib/hooks/useFamily';
@@ -195,9 +196,12 @@ function EntradasContent() {
               >
                 ← Voltar ao Dashboard
               </Link>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
-                💵 Entradas {selectedFamily && `- ${selectedFamily.name}`}
-              </h1>
+              <div className="flex items-center gap-3 border-b pb-4">
+                <TrendingUp className="w-7 h-7 text-green-600 dark:text-green-400" />
+                <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
+                  Entradas {selectedFamily && `- ${selectedFamily.name}`}
+                </h1>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               {session.user?.image && (

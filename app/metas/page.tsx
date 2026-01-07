@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Target, Lightbulb, Calendar, Trash2, BarChart3 } from 'lucide-react';
 import { useGoals, type SavingsGoal } from '@/lib/hooks/useGoals';
 import { useFamily } from '@/lib/hooks/useFamily';
 import Link from 'next/link';
@@ -208,9 +209,12 @@ function MetasContent() {
               >
                 ← Voltar ao Dashboard
               </Link>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
-                🎯 Metas {selectedFamily && `- ${selectedFamily.name}`}
-              </h1>
+              <div className="flex items-center gap-3 border-b pb-4">
+                <Target className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+                <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
+                  Metas {selectedFamily && `- ${selectedFamily.name}`}
+                </h1>
+              </div>
             </div>
           </div>
 
@@ -278,9 +282,12 @@ function MetasContent() {
 
             {isEmergencyFund ? (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
-                <p className="text-sm text-blue-800 font-medium">
-                  💡 Configure sua reserva de emergência baseada nas suas despesas mensais
-                </p>
+                <div className="flex items-start gap-2">
+                  <Lightbulb className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-blue-800 font-medium">
+                    Configure sua reserva de emergência baseada nas suas despesas mensais
+                  </p>
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -389,7 +396,8 @@ function MetasContent() {
       <div className="space-y-6">
         {!goals || goals.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500">
-            <p className="text-lg mb-2">📊 Nenhuma meta cadastrada</p>
+            <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <p className="text-lg mb-2">Nenhuma meta cadastrada</p>
             <p className="text-sm">Crie sua primeira meta de economia acima</p>
           </div>
         ) : (
@@ -426,16 +434,18 @@ function MetasContent() {
                         <p className="text-sm text-gray-600 mb-2">{goal.description}</p>
                       )}
                       {goal.targetDate && (
-                        <p className="text-sm text-gray-500">
-                          📅 Meta: {new Date(goal.targetDate).toLocaleDateString('pt-BR')}
+                        <p className="text-sm text-gray-500 flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          Meta: {new Date(goal.targetDate).toLocaleDateString('pt-BR')}
                         </p>
                       )}
                     </div>
                     <button
                       onClick={() => handleDeleteGoal(goal.id)}
-                      className="text-red-600 hover:text-red-800 text-sm font-medium"
+                      className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center gap-1"
                     >
-                      🗑️ Excluir
+                      <Trash2 className="w-4 h-4" />
+                      Excluir
                     </button>
                   </div>
 
@@ -467,8 +477,9 @@ function MetasContent() {
                   {/* Informações de Reserva de Emergência */}
                   {goal.isEmergencyFund && goal.monthlyExpenses && goal.targetMonths && (
                     <div className="bg-blue-50 rounded-lg p-3 mb-4 text-sm">
-                      <p className="text-blue-800">
-                        💰 Baseado em despesas mensais de R$ {parseFloat(goal.monthlyExpenses).toFixed(2).replace('.', ',')} × {goal.targetMonths} meses
+                      <p className="text-blue-800 flex items-start gap-2">
+                        <DollarSign className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <span>Baseado em despesas mensais de R$ {parseFloat(goal.monthlyExpenses).toFixed(2).replace('.', ',')} × {goal.targetMonths} meses</span>
                       </p>
                     </div>
                   )}

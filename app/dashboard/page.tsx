@@ -3,6 +3,7 @@
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Wallet, TrendingUp, TrendingDown, CreditCard, Repeat, BarChart3, Target, Trash2, Link as LinkIcon, Lightbulb, DollarSign, PiggyBank } from 'lucide-react';
 import { useFamily } from '@/lib/hooks/useFamily';
 import { useEntradas, PeriodType } from '@/lib/hooks/useEntradas';
 import { useSaidas } from '@/lib/hooks/useSaidas';
@@ -243,9 +244,12 @@ export default function Dashboard() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
         <div className="flex flex-col items-center gap-6 p-8 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
-          <h1 className="text-3xl font-semibold text-black dark:text-zinc-50">
-            💰 Financeiro App
-          </h1>
+          <div className="flex items-center gap-3">
+            <Wallet className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <h1 className="text-3xl font-semibold text-black dark:text-zinc-50">
+              Financeiro App
+            </h1>
+          </div>
           <p className="text-zinc-600 dark:text-zinc-400">
             Faça login para continuar
           </p>
@@ -286,9 +290,12 @@ export default function Dashboard() {
         <div className="flex flex-col gap-4 sm:gap-6 w-full">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-3">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
-              💰 Dashboard Financeiro
-            </h1>
+            <div className="flex items-center gap-3">
+              <Wallet className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+              <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
+                Dashboard Financeiro
+              </h1>
+            </div>
             <div className="flex items-center gap-3 sm:gap-4">
               {session.user?.image && (
                 <img
@@ -341,9 +348,10 @@ export default function Dashboard() {
                   <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={() => setShowInitialBalance(!showInitialBalance)}
-                      className="px-4 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 whitespace-nowrap"
+                      className="px-4 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 whitespace-nowrap flex items-center gap-2"
                     >
-                      {showInitialBalance ? 'Cancelar' : '💰 Saldo Inicial'}
+                      <DollarSign className="w-4 h-4" />
+                      {showInitialBalance ? 'Cancelar' : 'Saldo Inicial'}
                     </button>
                     <button
                       onClick={() => setShowAddMember(!showAddMember)}
@@ -353,9 +361,10 @@ export default function Dashboard() {
                     </button>
                     <button
                       onClick={() => setShowShareLinks(!showShareLinks)}
-                      className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
+                      className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap flex items-center gap-2"
                     >
-                      {showShareLinks ? 'Fechar Links' : '🔗 Links de Convite'}
+                      <LinkIcon className="w-4 h-4" />
+                      {showShareLinks ? 'Fechar Links' : 'Links de Convite'}
                     </button>
                   </div>
                 )}
@@ -364,9 +373,12 @@ export default function Dashboard() {
               {/* Initial Balance Form */}
               {showInitialBalance && (
                 <form onSubmit={handleSaveInitialBalance} className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg">
-                  <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50 mb-3">
-                    💰 Configurar Saldo Inicial
-                  </h3>
+                  <div className="flex items-center gap-2 mb-3">
+                    <DollarSign className="w-5 h-5" />
+                    <h3 className="font-medium text-sm sm:text-base text-black dark:text-zinc-50">
+                      Configurar Saldo Inicial
+                    </h3>
+                  </div>
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3">
                     Defina o valor que você tinha antes de começar a usar o app. Este valor será considerado apenas no cálculo do <strong>Saldo Total</strong>.
                   </p>
@@ -474,9 +486,9 @@ export default function Dashboard() {
                               </button>
                               <button
                                 onClick={() => handleDeleteShareLink(link.id)}
-                                className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                                className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1"
                               >
-                                🗑️
+                                <Trash2 className="w-3 h-3" />
                               </button>
                             </div>
                           </div>
@@ -486,9 +498,10 @@ export default function Dashboard() {
                   )}
 
                   <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded border border-blue-200 dark:border-blue-800">
-                    <p className="text-xs text-blue-800 dark:text-blue-200">
-                      💡 <strong>Dica:</strong> Links de convite podem ser usados apenas uma vez e expiram em 7 dias. 
-                      Compartilhe com pessoas que você deseja adicionar à família.
+                    <p className="text-xs text-blue-800 dark:text-blue-200 flex items-start gap-2">
+                      <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span><strong>Dica:</strong> Links de convite podem ser usados apenas uma vez e expiram em 7 dias. 
+                      Compartilhe com pessoas que você deseja adicionar à família.</span>
                     </p>
                   </div>
                 </div>
@@ -570,9 +583,12 @@ export default function Dashboard() {
               {accounts && accounts.length > 0 && (
                 <div className="border-t pt-6">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-semibold text-black dark:text-white">
-                      💳 Contas
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                      <h3 className="text-xl font-semibold text-black dark:text-white">
+                        Contas
+                      </h3>
+                    </div>
                     <Link
                       href={`/contas?family=${selectedFamilyId}`}
                       className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"
@@ -594,7 +610,7 @@ export default function Dashboard() {
                   href={`/entradas?family=${selectedFamilyId}`}
                   className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-4xl">💵</span>
+                  <TrendingUp className="w-12 h-12" />
                   <h3 className="text-lg font-bold text-center">Adicionar Entrada</h3>
                   <p className="text-sm opacity-90 text-center">Registrar nova entrada</p>
                 </Link>
@@ -602,7 +618,7 @@ export default function Dashboard() {
                   href={`/saidas?family=${selectedFamilyId}`}
                   className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-4xl">💳</span>
+                  <TrendingDown className="w-12 h-12" />
                   <h3 className="text-lg font-bold text-center">Adicionar Saída</h3>
                   <p className="text-sm opacity-90 text-center">Registrar nova saída</p>
                 </Link>
@@ -610,7 +626,7 @@ export default function Dashboard() {
                   href={`/contas?family=${selectedFamilyId}`}
                   className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-xl hover:from-teal-600 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-4xl">💳</span>
+                  <CreditCard className="w-12 h-12" />
                   <h3 className="text-lg font-bold text-center">Contas</h3>
                   <p className="text-sm opacity-90 text-center">Gerenciar contas</p>
                 </Link>
@@ -618,7 +634,7 @@ export default function Dashboard() {
                   href={`/transferencias?family=${selectedFamilyId}`}
                   className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-xl hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-4xl">🔄</span>
+                  <Repeat className="w-12 h-12" />
                   <h3 className="text-lg font-bold text-center">Transferências</h3>
                   <p className="text-sm opacity-90 text-center">Entre contas</p>
                 </Link>
@@ -626,15 +642,15 @@ export default function Dashboard() {
                   href={`/transacoes?family=${selectedFamilyId}`}
                   className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-4xl">📋</span>
+                  <Wallet className="w-12 h-12" />
                   <h3 className="text-lg font-bold text-center">Transações</h3>
                   <p className="text-sm opacity-90 text-center">Ver e editar</p>
                 </Link>
                 <Link
                   href={`/analises?family=${selectedFamilyId}`}
-                  className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+                  className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-4xl">📊</span>
+                  <BarChart3 className="w-12 h-12" />
                   <h3 className="text-lg font-bold text-center">Ver Análises</h3>
                   <p className="text-sm opacity-90 text-center">Relatórios e gráficos</p>
                 </Link>
@@ -642,7 +658,7 @@ export default function Dashboard() {
                   href={`/metas?family=${selectedFamilyId}`}
                   className="flex flex-col items-center justify-center gap-2 p-6 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  <span className="text-4xl">🎯</span>
+                  <Target className="w-12 h-12" />
                   <h3 className="text-lg font-bold text-center">Metas</h3>
                   <p className="text-sm opacity-90 text-center">Ver e gerenciar</p>
                 </Link>
@@ -651,18 +667,24 @@ export default function Dashboard() {
               {/* Recurring Transactions Section */}
               {((recurringSaidas && recurringSaidas.length > 0) || (recurringEntradas && recurringEntradas.length > 0)) && (
                 <div className="border-t pt-6">
-                  <h3 className="text-xl font-semibold text-black dark:text-white mb-4">
-                    🔄 Transações Recorrentes (Impacto Mensal)
-                  </h3>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Repeat className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    <h3 className="text-xl font-semibold text-black dark:text-white">
+                      Transações Recorrentes (Impacto Mensal)
+                    </h3>
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {/* Entradas Fixas */}
                     {recurringEntradas && recurringEntradas.length > 0 && (
                       <div>
                         <div className="flex justify-between items-center mb-3">
-                          <h4 className="font-semibold text-green-700 dark:text-green-400">
-                            📈 Entradas Fixas
-                          </h4>
+                          <div className="flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5 text-green-700 dark:text-green-400" />
+                            <h4 className="font-semibold text-green-700 dark:text-green-400">
+                              Entradas Fixas
+                            </h4>
+                          </div>
                           <span className="text-lg font-bold text-green-700 dark:text-green-400">
                             + R$ {recurringEntradasImpact.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
@@ -705,9 +727,12 @@ export default function Dashboard() {
                     {recurringSaidas && recurringSaidas.length > 0 && (
                       <div>
                         <div className="flex justify-between items-center mb-3">
-                          <h4 className="font-semibold text-red-700 dark:text-red-400">
-                            📉 Gastos Fixos
-                          </h4>
+                          <div className="flex items-center gap-2">
+                            <TrendingDown className="w-5 h-5 text-red-700 dark:text-red-400" />
+                            <h4 className="font-semibold text-red-700 dark:text-red-400">
+                              Gastos Fixos
+                            </h4>
+                          </div>
                           <span className="text-lg font-bold text-red-700 dark:text-red-400">
                             - R$ {recurringSaidasImpact.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
@@ -750,9 +775,12 @@ export default function Dashboard() {
                   {/* Resumo Mensal */}
                   <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg border border-blue-200 dark:border-blue-800">
                     <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        💰 Fluxo Recorrente Mensal Estimado:
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <PiggyBank className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Fluxo Recorrente Mensal Estimado:
+                        </span>
+                      </div>
                       <span className={`text-xl font-bold ${
                         (recurringEntradasImpact - recurringSaidasImpact) >= 0
                           ? 'text-green-700 dark:text-green-400'
@@ -770,9 +798,12 @@ export default function Dashboard() {
               {goals && Array.isArray(goals) && goals.length > 0 && (
                 <div className="border-t pt-6">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-semibold text-black dark:text-white">
-                      🎯 Suas Metas de Economia
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <Target className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                      <h3 className="text-xl font-semibold text-black dark:text-white">
+                        Suas Metas de Economia
+                      </h3>
+                    </div>
                     <Link
                       href={`/metas?family=${selectedFamilyId}`}
                       className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"

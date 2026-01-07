@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { TrendingDown } from 'lucide-react';
 import { useSaidas, PeriodType } from '@/lib/hooks/useSaidas';
 import { useTags } from '@/lib/hooks/useTags';
 import { useFamily } from '@/lib/hooks/useFamily';
@@ -195,9 +196,12 @@ function SaidasContent() {
               >
                 ← Voltar ao Dashboard
               </Link>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
-                💳 Saídas {selectedFamily && `- ${selectedFamily.name}`}
-              </h1>
+              <div className="flex items-center gap-3 border-b pb-4">
+                <TrendingDown className="w-7 h-7 text-red-600 dark:text-red-400" />
+                <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
+                  Saídas {selectedFamily && `- ${selectedFamily.name}`}
+                </h1>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               {session.user?.image && (

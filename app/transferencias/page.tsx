@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Repeat } from 'lucide-react';
 import { useTransfers } from '@/lib/hooks/useTransfers';
 import { useAccounts } from '@/lib/hooks/useAccounts';
 import { useFamily } from '@/lib/hooks/useFamily';
@@ -117,9 +118,12 @@ function TransferenciasContent() {
               >
                 ← Voltar ao Dashboard
               </Link>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
-                🔄 Transferências {selectedFamily && `- ${selectedFamily.name}`}
-              </h1>
+              <div className="flex items-center gap-3 border-b pb-4">
+                <Repeat className="w-7 h-7 text-cyan-600 dark:text-cyan-400" />
+                <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
+                  Transferências {selectedFamily && `- ${selectedFamily.name}`}
+                </h1>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               {session.user?.image && (

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
+import { CreditCard, Edit, Trash2 } from 'lucide-react';
 import { useFamily } from '@/lib/hooks/useFamily';
 import { useAccounts } from '@/lib/hooks/useAccounts';
 import FamilySelector from '@/components/FamilySelector';
@@ -101,9 +102,12 @@ export default function ContasPage() {
               >
                 ← Voltar ao Dashboard
               </Link>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
-                💳 Gerenciar Contas
-              </h1>
+              <div className="flex items-center gap-3 mb-6">
+                <CreditCard className="w-7 h-7 text-teal-600 dark:text-teal-400" />
+                <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
+                  Gerenciar Contas
+                </h1>
+              </div>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Gerencie suas contas bancárias, cartões e investimentos
               </p>
@@ -224,13 +228,13 @@ export default function ContasPage() {
                           onClick={() => setEditingAccount(account.id)}
                           className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm shadow-lg"
                         >
-                          ✏️
+                          <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteAccount(account.id)}
                           className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm shadow-lg"
                         >
-                          🗑️
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -254,13 +258,13 @@ export default function ContasPage() {
                           onClick={() => setEditingAccount(account.id)}
                           className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm shadow-lg"
                         >
-                          ✏️
+                          <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteAccount(account.id)}
                           className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm shadow-lg"
                         >
-                          🗑️
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>

@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Edit, Trash2 } from 'lucide-react';
 import { useEntradas, Entrada } from '@/lib/hooks/useEntradas';
 import { useSaidas, Saida } from '@/lib/hooks/useSaidas';
 import { useFamily } from '@/lib/hooks/useFamily';
@@ -697,15 +698,17 @@ function TransactionsContent() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEdit(transaction.type, transaction.item)}
-                              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1"
                             >
-                              ✏️ Editar
+                              <Edit className="w-3 h-3" />
+                              Editar
                             </button>
                             <button
                               onClick={() => handleDelete(transaction.type, transaction.id)}
-                              className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                              className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1"
                             >
-                              🗑️ Excluir
+                              <Trash2 className="w-3 h-3" />
+                              Excluir
                             </button>
                           </div>
                         </div>

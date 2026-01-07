@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { TrendingUp, TrendingDown, BarChart3, Calendar, DollarSign } from 'lucide-react';
 import { useEntradas } from '@/lib/hooks/useEntradas';
 import { useSaidas } from '@/lib/hooks/useSaidas';
 import { useFamily } from '@/lib/hooks/useFamily';
@@ -325,9 +326,12 @@ function AnalysesContent() {
               >
                 ← Voltar ao Dashboard
               </Link>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
-                📊 Análises {selectedFamily && `- ${selectedFamily.name}`}
-              </h1>
+              <div className="flex items-center gap-3 border-b pb-4">
+                <BarChart3 className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
+                <h1 className="text-2xl sm:text-3xl font-semibold text-black dark:text-zinc-50">
+                  Análises {selectedFamily && `- ${selectedFamily.name}`}
+                </h1>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               {session.user?.image && (
@@ -450,43 +454,43 @@ function AnalysesContent() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CategoryPieChart 
               data={expensesByCategory} 
-              title="💰 Gastos por Categoria"
+              title="Gastos por Categoria"
             />
             <CategoryPieChart 
               data={incomesBySource} 
-              title="📈 Receitas por Fonte"
+              title="Receitas por Fonte"
             />
           </div>
 
           {/* Waterfall Chart */}
           <WaterfallChart 
             data={waterfallData} 
-            title="🌊 Fluxo de Caixa (Waterfall)"
+            title="Fluxo de Caixa (Waterfall)"
           />
 
           {/* Charts Grid - Second Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <TopExpensesBarChart 
               data={filteredExpenses} 
-              title="🔝 Top 10 Maiores Gastos"
+              title="Top 10 Maiores Gastos"
               limit={10}
             />
             <BalanceAreaChart 
               data={balanceData} 
-              title="📊 Evolução do Saldo Acumulado"
+              title="Evolução do Saldo Acumulado"
             />
           </div>
 
           {/* Monthly Comparison */}
           <StackedBarChart 
             data={monthlyData} 
-            title="📅 Receitas vs Despesas por Mês"
+            title="Receitas vs Despesas por Mês"
           />
 
           {/* Trend Analysis */}
           <TrendLineChart 
             data={trendData} 
-            title="📉 Tendência de Gastos com Média Móvel"
+            title="Tendência de Gastos com Média Móvel"
             dataKey="Gastos Diários"
             color="#ef4444"
           />
@@ -494,7 +498,7 @@ function AnalysesContent() {
           {/* Heatmap */}
           <HeatmapChart 
             data={heatmapData} 
-            title="🔥 Mapa de Calor - Gastos por Dia da Semana e Hora"
+            title="Mapa de Calor - Gastos por Dia da Semana e Hora"
           />
 
           {/* Gráfico de Linha */}

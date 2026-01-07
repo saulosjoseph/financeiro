@@ -1,6 +1,7 @@
 'use client';
 
 import { Family } from '@/lib/hooks/useFamily';
+import { ChevronDown } from 'lucide-react';
 
 interface FamilySelectorProps {
   families: Family[] | undefined;
@@ -28,9 +29,7 @@ export default function FamilySelector({ families, selectedFamilyId, onSelectFam
           <span className="text-sm font-medium truncate max-w-[150px]">
             {selectedFamily?.name || 'Selecionar família'}
           </span>
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          <ChevronDown className="w-4 h-4 flex-shrink-0" />
         </button>
         
         <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
