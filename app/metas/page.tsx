@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Target, Lightbulb, Calendar, Trash2, BarChart3 } from 'lucide-react';
+import { Target, Lightbulb, Calendar, Trash2, BarChart3, DollarSign } from 'lucide-react';
 import { useGoals, type SavingsGoal } from '@/lib/hooks/useGoals';
 import { useFamily } from '@/lib/hooks/useFamily';
 import Link from 'next/link';

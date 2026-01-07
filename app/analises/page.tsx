@@ -134,7 +134,7 @@ function AnalysesContent() {
     const categoryMap = new Map<string, number>();
     
     filteredExpenses.forEach(expense => {
-      const category = expense.tag || 'Sem categoria';
+      const category = expense.category || 'Sem categoria';
       categoryMap.set(category, (categoryMap.get(category) || 0) + parseFloat(expense.amount));
     });
     

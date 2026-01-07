@@ -5,10 +5,10 @@ import { formatCurrency } from '@/lib/utils/dateAnalysis';
 
 interface TopExpensesBarChartProps {
   data: Array<{
-    description: string;
-    amount: number;
+    description: string | null;
+    amount: number | string;
     date: string;
-    tag?: string;
+    category?: string | null;
   }>;
   title: string;
   limit?: number;
@@ -25,15 +25,23 @@ export default function TopExpensesBarChart({ data, title, limit = 10 }: TopExpe
   }
 
   const sortedData = [...data]
-    .sort((a, b) => b.amount - a.amount)
+    .sort((a, b) => {
+      const amountA = typeof a.amount === 'string' ? parseFloat(a.amount) : a.amount;
+      const amountB = typeof b.amount === 'string' ? parseFloat(b.amount) : b.amount;
+      return amountB - amountA;
+    })
     .slice(0, limit)
-    .map(item => ({
-      name: item.description.length > 25 ? item.description.substring(0, 25) + '...' : item.description,
-      value: item.amount,
-      fullName: item.description,
-      date: new Date(item.date).toLocaleDateString('pt-BR'),
-      tag: item.tag || 'Sem categoria',
-    }));
+    .map(item => {
+      const description = item.description || 'Sem descrição';
+      const amount = typeof item.amount === 'string' ? parseFloat(item.amount) : item.amount;
+      return {
+        name: description.length > 25 ? description.substring(0, 25) + '...' : description,
+        value: amount,
+        fullName: description,
+        date: new Date(item.date).toLocaleDateString('pt-BR'),
+        tag: item.category || 'Sem categoria',
+      };
+    });
 
   return (
     <div className="bg-white dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
