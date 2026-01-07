@@ -9,6 +9,7 @@ import { useFamily } from '@/lib/hooks/useFamily';
 import { useTags } from '@/lib/hooks/useTags';
 import { formatCurrency as formatCurrencyMask, parseCurrency } from '@/lib/utils/currencyMask';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 type TransactionType = 'all' | 'entrada' | 'saida';
 type SortBy = 'date' | 'value' | 'description';
@@ -213,12 +214,12 @@ function TransactionsContent() {
           mutateExpenses();
         }
         handleCancelEdit();
-        alert('Atualizado com sucesso!');
+        toast.success('Atualizado com sucesso!');
       } else {
-        alert('Erro ao atualizar');
+        toast.error('Erro ao atualizar');
       }
     } catch (error) {
-      alert('Erro ao atualizar');
+      toast.error('Erro ao atualizar');
     } finally {
       setIsUpdating(false);
     }
@@ -242,12 +243,12 @@ function TransactionsContent() {
         } else {
           mutateExpenses();
         }
-        alert('Excluído com sucesso!');
+        toast.success('Excluído com sucesso!');
       } else {
-        alert('Erro ao excluir');
+        toast.error('Erro ao excluir');
       }
     } catch (error) {
-      alert('Erro ao excluir');
+      toast.error('Erro ao excluir');
     }
   };
 

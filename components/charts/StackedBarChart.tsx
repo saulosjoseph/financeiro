@@ -34,7 +34,7 @@ export default function StackedBarChartComponent({ data, title }: StackedBarChar
             stroke="#9ca3af"
           />
           <Tooltip 
-            formatter={(value: number) => formatCurrency(value)}
+            formatter={(value: number | undefined) => formatCurrency(value || 0)}
             contentStyle={{
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               border: '1px solid #ccc',

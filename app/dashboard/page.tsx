@@ -14,6 +14,7 @@ import StatsCard from '@/components/StatsCard';
 import AccountCard from '@/components/AccountCard';
 import PeriodToggleDual from '@/components/PeriodToggleDual';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -113,13 +114,13 @@ export default function Dashboard() {
         setMemberEmail('');
         setShowAddMember(false);
         mutateFamilies();
-        alert('Membro adicionado com sucesso!');
+        toast.success('Membro adicionado com sucesso!');
       } else {
         const error = await response.json();
-        alert(error.error || 'Erro ao adicionar membro');
+        toast.error(error.error || 'Erro ao adicionar membro');
       }
     } catch (error) {
-      alert('Erro ao adicionar membro');
+      toast.error('Erro ao adicionar membro');
     } finally {
       setIsAddingMember(false);
     }
@@ -151,13 +152,13 @@ export default function Dashboard() {
       if (response.ok) {
         const data = await response.json();
         setShareLinks([...shareLinks, data]);
-        alert('Link criado com sucesso!');
+        toast.success('Link criado com sucesso!');
       } else {
         const error = await response.json();
-        alert(error.error || 'Erro ao criar link');
+        toast.error(error.error || 'Erro ao criar link');
       }
     } catch (error) {
-      alert('Erro ao criar link');
+      toast.error('Erro ao criar link');
     } finally {
       setIsCreatingLink(false);
     }
@@ -172,19 +173,19 @@ export default function Dashboard() {
 
       if (response.ok) {
         setShareLinks(shareLinks.filter(link => link.id !== linkId));
-        alert('Link deletado com sucesso!');
+        toast.success('Link deletado com sucesso!');
       } else {
         const error = await response.json();
-        alert(error.error || 'Erro ao deletar link');
+        toast.error(error.error || 'Erro ao deletar link');
       }
     } catch (error) {
-      alert('Erro ao deletar link');
+      toast.error('Erro ao deletar link');
     }
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    alert('Link copiado para a área de transferência!');
+    toast.success('Link copiado para a área de transferência!');
   };
 
   const handleSaveInitialBalance = async (e: React.FormEvent) => {
@@ -205,14 +206,14 @@ export default function Dashboard() {
         await mutateFamilies();
         setShowInitialBalance(false);
         setInitialBalanceInput('');
-        alert('Saldo inicial atualizado com sucesso!');
+        toast.success('Saldo inicial atualizado com sucesso!');
       } else {
         const error = await response.json();
-        alert(`Erro ao atualizar saldo inicial: ${error.error || 'Erro desconhecido'}`);
+        toast.error(`Erro ao atualizar saldo inicial: ${error.error || 'Erro desconhecido'}`);
       }
     } catch (error) {
       console.error('Error saving initial balance:', error);
-      alert('Erro ao atualizar saldo inicial');
+      toast.error('Erro ao atualizar saldo inicial');
     } finally {
       setIsSavingBalance(false);
     }

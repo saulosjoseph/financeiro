@@ -7,6 +7,7 @@ import { useGoals, type SavingsGoal } from '@/lib/hooks/useGoals';
 import { useFamily } from '@/lib/hooks/useFamily';
 import Link from 'next/link';
 import { formatCurrency, parseCurrency } from '@/lib/utils/currencyMask';
+import { toast } from 'sonner';
 
 function MetasContent() {
   const { data: session } = useSession();
@@ -60,7 +61,7 @@ function MetasContent() {
     }
 
     if (!name.trim() || finalTargetAmount <= 0) {
-      alert('Nome e valor alvo são obrigatórios');
+      toast.error('Nome e valor alvo são obrigatórios');
       return;
     }
 
@@ -93,12 +94,13 @@ function MetasContent() {
         setTargetMonths(3);
         setShowCreateGoal(false);
         mutateGoals();
+        toast.success('Meta criada com sucesso!');
       } else {
         const error = await response.json();
-        alert(error.error || 'Erro ao criar meta');
+        toast.error(error.error || 'Erro ao criar meta');
       }
     } catch (error) {
-      alert('Erro ao criar meta');
+      toast.error('Erro ao criar meta');
     } finally {
       setIsCreatingGoal(false);
     }
@@ -110,7 +112,7 @@ function MetasContent() {
 
     const amount = parseFloat(parseCurrency(contributionAmount));
     if (amount <= 0) {
-      alert('Valor deve ser maior que zero');
+      toast.error('Valor deve ser maior que zero');
       return;
     }
 
@@ -132,12 +134,13 @@ function MetasContent() {
         setContributionDescription('');
         setSelectedGoal(null);
         mutateGoals();
+        toast.success('Contribuição adicionada com sucesso!');
       } else {
         const error = await response.json();
-        alert(error.error || 'Erro ao adicionar contribuição');
+        toast.error(error.error || 'Erro ao adicionar contribuição');
       }
     } catch (error) {
-      alert('Erro ao adicionar contribuição');
+      toast.error('Erro ao adicionar contribuição');
     } finally {
       setIsAddingContribution(false);
     }
@@ -154,11 +157,12 @@ function MetasContent() {
 
       if (response.ok) {
         mutateGoals();
+        toast.success('Meta deletada com sucesso!');
       } else {
-        alert('Erro ao deletar meta');
+        toast.error('Erro ao deletar meta');
       }
     } catch (error) {
-      alert('Erro ao deletar meta');
+      toast.error('Erro ao deletar meta');
     }
   };
 

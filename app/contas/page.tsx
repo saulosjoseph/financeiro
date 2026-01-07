@@ -9,6 +9,7 @@ import FamilySelector from '@/components/FamilySelector';
 import AccountCard from '@/components/AccountCard';
 import AccountForm from '@/components/AccountForm';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 export default function ContasPage() {
   const { data: session, status } = useSession();
@@ -78,7 +79,7 @@ export default function ContasPage() {
       try {
         await deleteAccount(accountId);
       } catch (error) {
-        alert(error instanceof Error ? error.message : 'Erro ao deletar conta');
+        toast.error(error instanceof Error ? error.message : 'Erro ao deletar conta');
       }
     }
   };

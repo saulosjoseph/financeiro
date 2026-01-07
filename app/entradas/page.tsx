@@ -12,6 +12,7 @@ import AccountSelector from '@/components/AccountSelector';
 import PeriodToggle from '@/components/PeriodToggle';
 import Link from 'next/link';
 import { formatCurrency, parseCurrency } from '@/lib/utils/currencyMask';
+import { toast } from 'sonner';
 
 function EntradasContent() {
   const { data: session, status } = useSession();
@@ -74,7 +75,7 @@ function EntradasContent() {
   const handleAddEntrada = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !familyId || !accountId) {
-      alert('Por favor, selecione uma conta');
+      toast.error('Por favor, selecione uma conta');
       return;
     }
     setIsAddingEntrada(true);
@@ -108,12 +109,12 @@ function EntradasContent() {
         setRecurringEndDate('');
         setSelectedTags([]);
         mutateEntradas();
-        alert('Entrada adicionada com sucesso!');
+        toast.success('Entrada adicionada com sucesso!');
       } else {
-        alert('Erro ao adicionar entrada');
+        toast.error('Erro ao adicionar entrada');
       }
     } catch (error) {
-      alert('Erro ao adicionar entrada');
+      toast.error('Erro ao adicionar entrada');
     } finally {
       setIsAddingEntrada(false);
     }
@@ -135,13 +136,13 @@ function EntradasContent() {
         setTagColor('#6B7280');
         setShowCreateTag(false);
         mutateTags();
-        alert('Tag criada com sucesso!');
+        toast.success('Tag criada com sucesso!');
       } else {
         const error = await response.json();
-        alert(error.error || 'Erro ao criar tag');
+        toast.error(error.error || 'Erro ao criar tag');
       }
     } catch (error) {
-      alert('Erro ao criar tag');
+      toast.error('Erro ao criar tag');
     } finally {
       setIsCreatingTag(false);
     }

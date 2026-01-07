@@ -9,6 +9,7 @@ import { useFamily } from '@/lib/hooks/useFamily';
 import AccountSelector from '@/components/AccountSelector';
 import Link from 'next/link';
 import { formatCurrency, parseCurrency } from '@/lib/utils/currencyMask';
+import { toast } from 'sonner';
 
 function TransferenciasContent() {
   const { data: session, status } = useSession();
@@ -46,12 +47,12 @@ function TransferenciasContent() {
   const handleCreateTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !familyId || !fromAccountId || !toAccountId) {
-      alert('Por favor, preencha todos os campos obrigatórios');
+      toast.error('Por favor, preencha todos os campos obrigatórios');
       return;
     }
 
     if (fromAccountId === toAccountId) {
-      alert('As contas de origem e destino devem ser diferentes');
+      toast.error('As contas de origem e destino devem ser diferentes');
       return;
     }
 
@@ -77,13 +78,13 @@ function TransferenciasContent() {
         setToAccountId(null);
         setDate(new Date().toISOString().split('T')[0]);
         await mutate();
-        alert('Transferência criada com sucesso!');
+        toast.success('Transferência criada com sucesso!');
       } else {
         const error = await response.json();
-        alert(`Erro ao criar transferência: ${error.error}`);
+        toast.error(`Erro ao criar transferência: ${error.error}`);
       }
     } catch (error) {
-      alert('Erro ao criar transferência');
+      toast.error('Erro ao criar transferência');
       console.error(error);
     } finally {
       setIsCreating(false);

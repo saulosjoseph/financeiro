@@ -53,7 +53,7 @@ export default function TopExpensesBarChart({ data, title, limit = 10 }: TopExpe
             stroke="#9ca3af"
           />
           <Tooltip 
-            formatter={(value: number) => formatCurrency(value)}
+            formatter={(value: number | undefined) => formatCurrency(value || 0)}
             labelFormatter={(label) => {
               const item = sortedData.find(d => d.name === label);
               return item?.fullName || label;

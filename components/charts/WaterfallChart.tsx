@@ -33,7 +33,6 @@ export default function WaterfallChart({ data, title }: WaterfallChartProps) {
       <div className="flex items-end justify-around gap-4 h-64">
         {steps.map((step, index) => {
           const height = (Math.abs(step.value) / maxValue) * 100;
-          const isNegative = step.isNegative || step.value < 0;
           
           return (
             <div key={index} className="flex flex-col items-center flex-1">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface CreateFamilyFormProps {
   onSuccess: () => void;
@@ -24,12 +25,13 @@ export default function CreateFamilyForm({ onSuccess }: CreateFamilyFormProps) {
 
       if (response.ok) {
         setFamilyName('');
+        toast.success('Família criada com sucesso!');
         onSuccess();
       } else {
-        alert('Erro ao criar família');
+        toast.error('Erro ao criar família');
       }
     } catch (error) {
-      alert('Erro ao criar família');
+      toast.error('Erro ao criar família');
     } finally {
       setIsCreating(false);
     }
