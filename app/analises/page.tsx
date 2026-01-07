@@ -9,6 +9,14 @@ import { useFamily } from '@/lib/hooks/useFamily';
 import PeriodSelector from '@/components/PeriodSelector';
 import PeriodAnalysisChart from '@/components/PeriodAnalysisChart';
 import StatsCard from '@/components/StatsCard';
+import CategoryPieChart from '@/components/charts/CategoryPieChart';
+import TopExpensesBarChart from '@/components/charts/TopExpensesBarChart';
+import StackedBarChart from '@/components/charts/StackedBarChart';
+import BalanceAreaChart from '@/components/charts/BalanceAreaChart';
+import TrendLineChart from '@/components/charts/TrendLineChart';
+import HeatmapChart from '@/components/charts/HeatmapChart';
+import WaterfallChart from '@/components/charts/WaterfallChart';
+import KPIDashboard from '@/components/charts/KPIDashboard';
 import {
   PeriodType,
   getMultiplePeriods,
@@ -118,6 +126,175 @@ function AnalysesContent() {
       calculatePeriodAnalysis(filteredIncomes, filteredExpenses, range, label)
     );
   }, [filteredIncomes, filteredExpenses, selectedPeriod]);
+
+  // Data for Category Pie Chart (Expenses by Tag)
+  const expensesByCategory = useMemo(() => {
+    if (!filteredExpenses) return [];
+    const categoryMap = new Map<string, number>();
+    
+    filteredExpenses.forEach(expense => {
+      const category = expense.tag || 'Sem categoria';
+      categoryMap.set(category, (categoryMap.get(category) || 0) + parseFloat(expense.amount));
+    });
+    
+    return Array.from(categoryMap.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [filteredExpenses]);
+
+  // Data for Income Pie Chart
+  const incomesBySource = useMemo(() => {
+    if (!filteredIncomes) return [];
+    const sourceMap = new Map<string, number>();
+    
+    filteredIncomes.forEach(income => {
+      const source = income.description || 'Sem descrição';
+      sourceMap.set(source, (sourceMap.get(source) || 0) + parseFloat(income.amount));
+    });
+    
+    return Array.from(sourceMap.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8); // Top 8 sources
+  }, [filteredIncomes]);
+
+  // Data for Monthly Stacked Bar Chart
+  const monthlyData = useMemo(() => {
+    if (!filteredIncomes || !filteredExpenses) return [];
+    
+    const monthMap = new Map<string, { receitas: number; despesas: number }>();
+    
+    filteredIncomes.forEach(income => {
+      const month = new Date(income.date).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+      const data = monthMap.get(month) || { receitas: 0, despesas: 0 };
+      data.receitas += parseFloat(income.amount);
+      monthMap.set(month, data);
+    });
+    
+    filteredExpenses.forEach(expense => {
+      const month = new Date(expense.date).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+      const data = monthMap.get(month) || { receitas: 0, despesas: 0 };
+      data.despesas += parseFloat(expense.amount);
+      monthMap.set(month, data);
+    });
+    
+    return Array.from(monthMap.entries())
+      .map(([month, data]) => ({ month, ...data }))
+      .sort((a, b) => {
+        const [monthA, yearA] = a.month.split('/');
+        const [monthB, yearB] = b.month.split('/');
+        return new Date(`20${yearA}-${monthA}-01`).getTime() - new Date(`20${yearB}-${monthB}-01`).getTime();
+      });
+  }, [filteredIncomes, filteredExpenses]);
+
+  // Data for Balance Area Chart
+  const balanceData = useMemo(() => {
+    if (!filteredIncomes || !filteredExpenses) return [];
+    
+    const dateMap = new Map<string, { entrada: number; saida: number }>();
+    
+    filteredIncomes.forEach(income => {
+      const date = new Date(income.date).toLocaleDateString('pt-BR');
+      const data = dateMap.get(date) || { entrada: 0, saida: 0 };
+      data.entrada += parseFloat(income.amount);
+      dateMap.set(date, data);
+    });
+    
+    filteredExpenses.forEach(expense => {
+      const date = new Date(expense.date).toLocaleDateString('pt-BR');
+      const data = dateMap.get(date) || { entrada: 0, saida: 0 };
+      data.saida += parseFloat(expense.amount);
+      dateMap.set(date, data);
+    });
+    
+    let cumulativeBalance = 0;
+    return Array.from(dateMap.entries())
+      .sort((a, b) => {
+        const [dayA, monthA, yearA] = a[0].split('/').map(Number);
+        const [dayB, monthB, yearB] = b[0].split('/').map(Number);
+        return new Date(yearA, monthA - 1, dayA).getTime() - new Date(yearB, monthB - 1, dayB).getTime();
+      })
+      .map(([date, data]) => {
+        cumulativeBalance += data.entrada - data.saida;
+        return { date, balance: cumulativeBalance };
+      });
+  }, [filteredIncomes, filteredExpenses]);
+
+  // Data for Trend Line Chart with Moving Average
+  const trendData = useMemo(() => {
+    if (!filteredExpenses) return [];
+    
+    const dateMap = new Map<string, number>();
+    filteredExpenses.forEach(expense => {
+      const date = new Date(expense.date).toLocaleDateString('pt-BR');
+      dateMap.set(date, (dateMap.get(date) || 0) + parseFloat(expense.amount));
+    });
+    
+    const sortedData = Array.from(dateMap.entries())
+      .sort((a, b) => {
+        const [dayA, monthA, yearA] = a[0].split('/').map(Number);
+        const [dayB, monthB, yearB] = b[0].split('/').map(Number);
+        return new Date(yearA, monthA - 1, dayA).getTime() - new Date(yearB, monthB - 1, dayB).getTime();
+      });
+    
+    // Calculate 7-day moving average
+    return sortedData.map(([date, value], index) => {
+      const window = sortedData.slice(Math.max(0, index - 6), index + 1);
+      const movingAverage = window.reduce((sum, [, val]) => sum + val, 0) / window.length;
+      return { date, value, movingAverage };
+    });
+  }, [filteredExpenses]);
+
+  // Data for Heatmap (Expenses by Day and Hour)
+  const heatmapData = useMemo(() => {
+    if (!filteredExpenses) return [];
+    
+    const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const heatMap = new Map<string, { amount: number; count: number }>();
+    
+    filteredExpenses.forEach(expense => {
+      const date = new Date(expense.date);
+      const dayOfWeek = DAYS[date.getDay()];
+      const hour = date.getHours();
+      const key = `${dayOfWeek}-${hour}`;
+      
+      const data = heatMap.get(key) || { amount: 0, count: 0 };
+      data.amount += parseFloat(expense.amount);
+      data.count += 1;
+      heatMap.set(key, data);
+    });
+    
+    return Array.from(heatMap.entries()).map(([key, data]) => {
+      const [dayOfWeek, hourStr] = key.split('-');
+      return { dayOfWeek, hour: parseInt(hourStr), ...data };
+    });
+  }, [filteredExpenses]);
+
+  // Data for Waterfall Chart
+  const waterfallData = useMemo(() => {
+    return {
+      initialBalance: 0, // Could be fetched from account balance
+      incomes: filteredTotalIncome,
+      expenses: filteredTotalExpense,
+      finalBalance: filteredBalance,
+    };
+  }, [filteredTotalIncome, filteredTotalExpense, filteredBalance]);
+
+  // Data for KPI Dashboard
+  const kpiData = useMemo(() => {
+    const totalTransactions = (filteredIncomes?.length || 0) + (filteredExpenses?.length || 0);
+    const daysInPeriod = Math.ceil(
+      (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)
+    ) || 1;
+    
+    return {
+      savingsRate: filteredTotalIncome > 0 ? ((filteredTotalIncome - filteredTotalExpense) / filteredTotalIncome) * 100 : 0,
+      avgDailyExpense: filteredTotalExpense / daysInPeriod,
+      avgTransactionValue: totalTransactions > 0 ? (filteredTotalIncome + filteredTotalExpense) / totalTransactions : 0,
+      daysToGoal: undefined, // Can be calculated if goal is defined
+      totalTransactions,
+    };
+  }, [filteredIncomes, filteredExpenses, filteredTotalIncome, filteredTotalExpense, startDate, endDate]);
 
   const currentPeriodAnalysis = analyses.length > 0 ? analyses[analyses.length - 1] : null;
   const balance = totalEntrada - totalSaida;
@@ -265,6 +442,60 @@ function AnalysesContent() {
               Exibindo dados de {new Date(startDate).toLocaleDateString('pt-BR')} até {new Date(endDate).toLocaleDateString('pt-BR')}
             </p>
           </div>
+
+          {/* KPI Dashboard */}
+          <KPIDashboard data={kpiData} />
+
+          {/* Charts Grid - First Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CategoryPieChart 
+              data={expensesByCategory} 
+              title="💰 Gastos por Categoria"
+            />
+            <CategoryPieChart 
+              data={incomesBySource} 
+              title="📈 Receitas por Fonte"
+            />
+          </div>
+
+          {/* Waterfall Chart */}
+          <WaterfallChart 
+            data={waterfallData} 
+            title="🌊 Fluxo de Caixa (Waterfall)"
+          />
+
+          {/* Charts Grid - Second Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TopExpensesBarChart 
+              data={filteredExpenses} 
+              title="🔝 Top 10 Maiores Gastos"
+              limit={10}
+            />
+            <BalanceAreaChart 
+              data={balanceData} 
+              title="📊 Evolução do Saldo Acumulado"
+            />
+          </div>
+
+          {/* Monthly Comparison */}
+          <StackedBarChart 
+            data={monthlyData} 
+            title="📅 Receitas vs Despesas por Mês"
+          />
+
+          {/* Trend Analysis */}
+          <TrendLineChart 
+            data={trendData} 
+            title="📉 Tendência de Gastos com Média Móvel"
+            dataKey="Gastos Diários"
+            color="#ef4444"
+          />
+
+          {/* Heatmap */}
+          <HeatmapChart 
+            data={heatmapData} 
+            title="🔥 Mapa de Calor - Gastos por Dia da Semana e Hora"
+          />
 
           {/* Gráfico de Linha */}
           <div className="bg-white dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-800">
