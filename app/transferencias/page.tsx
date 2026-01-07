@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTransfers } from '@/lib/hooks/useTransfers';
@@ -10,7 +10,7 @@ import AccountSelector from '@/components/AccountSelector';
 import Link from 'next/link';
 import { formatCurrency, parseCurrency } from '@/lib/utils/currencyMask';
 
-export default function TransferenciasPage() {
+function TransferenciasContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -234,21 +234,29 @@ export default function TransferenciasPage() {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <span
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: transfer.fromAccount.color }}
-                          />
-                          <span className="text-sm font-medium text-black dark:text-white">
-                            {transfer.fromAccount.name}
-                          </span>
+                          {transfer.fromAccount && (
+                            <>
+                              <span
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: transfer.fromAccount.color }}
+                              />
+                              <span className="text-sm font-medium text-black dark:text-white">
+                                {transfer.fromAccount.name}
+                              </span>
+                            </>
+                          )}
                           <span className="text-gray-500">→</span>
-                          <span
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: transfer.toAccount.color }}
-                          />
-                          <span className="text-sm font-medium text-black dark:text-white">
-                            {transfer.toAccount.name}
-                          </span>
+                          {transfer.toAccount && (
+                            <>
+                              <span
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: transfer.toAccount.color }}
+                              />
+                              <span className="text-sm font-medium text-black dark:text-white">
+                                {transfer.toAccount.name}
+                              </span>
+                            </>
+                          )}
                         </div>
                         {transfer.description && (
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
@@ -273,5 +281,17 @@ export default function TransferenciasPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function TransferenciasPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+        <p className="text-lg">Carregando...</p>
+      </div>
+    }>
+      <TransferenciasContent />
+    </Suspense>
   );
 }
