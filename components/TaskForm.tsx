@@ -87,7 +87,7 @@ export default function TaskForm({ familyId, familyMembers, onClose, onSuccess }
         dueDate: dueDate || null,
         assigneeId: assigneeId || null,
         type,
-        amount: amount ? parseCurrency(amount) : null,
+        amount: amount ? parseFloat(parseCurrency(amount)) : null,
         isRecurring,
         recurringType: isRecurring ? recurringType : null,
         recurringDay: isRecurring ? recurringDay : null,
