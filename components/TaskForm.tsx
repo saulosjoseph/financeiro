@@ -378,7 +378,7 @@ export default function TaskForm({ familyId, familyMembers, onClose, onSuccess }
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       >
                         <option value="">Selecione...</option>
-                        {getRecurringTransactions().map((transaction: { id: string; description: string | null; recurringType: string | null; amount: string | number }) => (
+                        {getRecurringTransactions().map((transaction: { id: string; description: string | null; recurringType?: string | null; amount: string | number }) => (
                           <option key={transaction.id} value={transaction.id}>
                             {transaction.description} - {transaction.recurringType} - R$ {transaction.amount}
                           </option>
