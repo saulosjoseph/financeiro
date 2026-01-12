@@ -63,7 +63,24 @@ export default function TaskForm({ familyId, familyMembers, onClose, onSuccess }
     setIsSubmitting(true);
 
     try {
-      const payload = {
+      const payload: {
+        title: string;
+        description: string;
+        priority: string;
+        dueDate: string | null;
+        assigneeId: string | null;
+        type: string;
+        amount: number | null;
+        isRecurring: boolean;
+        recurringType: string | null;
+        recurringDay: number | null;
+        recurringEndDate: string | null;
+        autoGenerateTransaction: boolean;
+        transactionMode: string | null;
+        accountId: string | null;
+        linkedRecurringSaidaId?: string;
+        linkedRecurringEntradaId?: string;
+      } = {
         title,
         description,
         priority,
