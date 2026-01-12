@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Financeiro App",
-  description: "Aplicação de gestão financeira",
+  title: "Familiar - Gestão Familiar Completa",
+  description: "Plataforma completa de gestão familiar: finanças, tarefas, metas e muito mais",
 };
 
 export default function RootLayout({
