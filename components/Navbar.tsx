@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { LayoutDashboard, TrendingUp, CreditCard, Target, Wallet, ChevronDown, Menu, X, LogOut } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, CreditCard, Target, Wallet, ChevronDown, Menu, X, LogOut, CheckSquare, ListTodo, Calendar } from 'lucide-react';
 import FamilySelector from './FamilySelector';
 import { useFamily } from '@/lib/hooks/useFamily';
 
@@ -18,13 +18,25 @@ export default function Navbar() {
   );
   const { families } = useFamily(selectedFamilyId);
 
-  const navItems = [
+  // Detect current context based on pathname
+  const isTasksContext = pathname.startsWith('/tarefas');
+  const currentContext = isTasksContext ? 'tasks' : 'finance';
+
+  const financeNavItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/analises', label: 'Análises', icon: TrendingUp },
     { href: '/contas', label: 'Contas', icon: CreditCard },
     { href: '/metas', label: 'Metas', icon: Target },
     { href: '/transacoes', label: 'Transações', icon: Wallet },
   ];
+
+  const tasksNavItems = [
+    { href: '/tarefas', label: 'Tarefas', icon: ListTodo },
+    { href: '/tarefas/minhas', label: 'Minhas Tarefas', icon: CheckSquare },
+    { href: '/tarefas/calendario', label: 'Calendário', icon: Calendar },
+  ];
+
+  const navItems = currentContext === 'tasks' ? tasksNavItems : financeNavItems;
 
   const isActive = (href: string) => {
     if (href === '/transacoes') {
@@ -40,14 +52,57 @@ export default function Navbar() {
       <nav className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            {/* Logo & Brand */}
-            <div className="flex items-center">
-              <Link href="/dashboard" className="flex items-center gap-2 group">
-                <Wallet className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                <span className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                  Financeiro
+            {/* Logo & Brand with Context Switcher */}
+            <div className="flex items-center gap-3">
+              <Link href={currentContext === 'tasks' ? '/tarefas' : '/dashboard'} className="flex items-center gap-2 group">
+                {currentContext === 'tasks' ? (
+                  <CheckSquare className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                ) : (
+                  <Wallet className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                )}
+                <span className={`text-xl font-bold text-gray-900 dark:text-white transition-colors ${
+                  currentContext === 'tasks'
+                    ? 'group-hover:text-purple-600 dark:group-hover:text-purple-400'
+                    : 'group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                }`}>
+                  {currentContext === 'tasks' ? 'Tarefas' : 'Financeiro'}
                 </span>
               </Link>
+              
+              {/* Context Switcher Button */}
+              <div className="relative group/switcher">
+                <button className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                  <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                </button>
+                
+                {/* Context Switcher Dropdown */}
+                <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover/switcher:opacity-100 group-hover/switcher:visible transition-all duration-200">
+                  <Link
+                    href={'/dashboard' + (selectedFamilyId ? `?family=${selectedFamilyId}` : '')}
+                    className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                      currentContext === 'finance' ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                    }`}
+                  >
+                    <Wallet className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Financeiro</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Gestão financeira</p>
+                    </div>
+                  </Link>
+                  <Link
+                    href={'/tarefas' + (selectedFamilyId ? `?family=${selectedFamilyId}` : '')}
+                    className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors rounded-b-lg ${
+                      currentContext === 'tasks' ? 'bg-purple-50 dark:bg-purple-900/20' : ''
+                    }`}
+                  >
+                    <CheckSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Tarefas</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Gestão de tarefas</p>
+                    </div>
+                  </Link>
+                </div>
+              </div>
             </div>
 
             {/* Desktop Navigation */}
@@ -60,7 +115,9 @@ export default function Navbar() {
                     href={item.href + (selectedFamilyId ? `?family=${selectedFamilyId}` : '')}
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
                       isActive(item.href)
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                        ? currentContext === 'tasks'
+                          ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400'
+                          : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                   >
@@ -152,7 +209,9 @@ export default function Navbar() {
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium ${
                       isActive(item.href)
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                        ? currentContext === 'tasks'
+                          ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400'
+                          : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                   >

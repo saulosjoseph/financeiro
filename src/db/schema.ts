@@ -18,6 +18,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   familyMembers: many(familyMembers),
   entradas: many(entradas),
   saidas: many(saidas),
+  createdTasks: many(tasks, { relationName: 'createdTasks' }),
+  assignedTasks: many(tasks, { relationName: 'assignedTasks' }),
 }));
 
 // Families table
@@ -38,6 +40,7 @@ export const familiesRelations = relations(families, ({ many }) => ({
   tags: many(tags),
   savingsGoals: many(savingsGoals),
   transfers: many(transfers),
+  tasks: many(tasks),
 }));
 
 // Financial Accounts table
@@ -205,6 +208,8 @@ export const entradas = pgTable('entradas', {
   description: text('description'),
   source: text('source'),
   date: timestamp('date', { mode: 'date' }).notNull().defaultNow(),
+  linkedTaskId: text('linked_task_id'),
+  wasGeneratedByTask: boolean('was_generated_by_task').notNull().default(false),
   isRecurring: boolean('is_recurring').notNull().default(false),
   recurringType: text('recurring_type'),
   recurringDay: integer('recurring_day'),
@@ -264,6 +269,8 @@ export const saidas = pgTable('saidas', {
   description: text('description'),
   category: text('category'),
   date: timestamp('date', { mode: 'date' }).notNull().defaultNow(),
+  linkedTaskId: text('linked_task_id'),
+  wasGeneratedByTask: boolean('was_generated_by_task').notNull().default(false),
   isRecurring: boolean('is_recurring').notNull().default(false),
   recurringType: text('recurring_type'),
   recurringDay: integer('recurring_day'),
@@ -409,5 +416,61 @@ export const goalContributionsRelations = relations(goalContributions, ({ one })
   entrada: one(entradas, {
     fields: [goalContributions.entradaId],
     references: [entradas.id],
+  }),
+}));
+
+// Tasks table
+export const tasks = pgTable('tasks', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  familyId: text('family_id').notNull().references(() => families.id, { onDelete: 'cascade' }),
+  createdById: text('created_by_id').notNull().references(() => users.id),
+  assigneeId: text('assignee_id').references(() => users.id),
+  
+  title: text('title').notNull(),
+  description: text('description'),
+  status: text('status').notNull().default('todo'),
+  priority: text('priority').notNull().default('medium'),
+  dueDate: timestamp('due_date', { mode: 'date' }),
+  
+  type: text('type').notNull().default('standard'),
+  amount: decimal('amount', { precision: 10, scale: 2 }),
+  linkedRecurringEntradaId: text('linked_recurring_entrada_id').references(() => entradas.id),
+  linkedRecurringSaidaId: text('linked_recurring_saida_id').references(() => saidas.id),
+  autoGenerateTransaction: boolean('auto_generate_transaction').notNull().default(true),
+  
+  isRecurring: boolean('is_recurring').notNull().default(false),
+  recurringType: text('recurring_type'),
+  recurringDay: integer('recurring_day'),
+  recurringEndDate: timestamp('recurring_end_date', { mode: 'date' }),
+  
+  completedAt: timestamp('completed_at', { mode: 'date' }),
+  createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow(),
+}, (table) => ({
+  familyDateIdx: index('tasks_family_date_idx').on(table.familyId, table.dueDate),
+  assigneeStatusIdx: index('tasks_assignee_status_idx').on(table.assigneeId, table.status),
+  recurringIdx: index('tasks_recurring_idx').on(table.isRecurring),
+}));
+
+export const tasksRelations = relations(tasks, ({ one }) => ({
+  family: one(families, {
+    fields: [tasks.familyId],
+    references: [families.id],
+  }),
+  createdBy: one(users, {
+    fields: [tasks.createdById],
+    references: [users.id],
+  }),
+  assignee: one(users, {
+    fields: [tasks.assigneeId],
+    references: [users.id],
+  }),
+  linkedRecurringEntrada: one(entradas, {
+    fields: [tasks.linkedRecurringEntradaId],
+    references: [entradas.id],
+  }),
+  linkedRecurringSaida: one(saidas, {
+    fields: [tasks.linkedRecurringSaidaId],
+    references: [saidas.id],
   }),
 }));
