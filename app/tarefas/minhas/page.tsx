@@ -3,32 +3,23 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { CheckSquare, Plus, AlertCircle, Calendar, DollarSign } from 'lucide-react';
+import { CheckSquare, AlertCircle, Calendar, DollarSign } from 'lucide-react';
 import { useFamily } from '@/lib/hooks/useFamily';
 import { useTasks } from '@/lib/hooks/useTasks';
-import TaskForm from '@/components/TaskForm';
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils/currencyMask';
 import { toast } from 'sonner';
 
-function TarefasContent() {
+function MinhasTarefasContent() {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const familyId = searchParams.get('family');
 
   const { selectedFamily } = useFamily(familyId);
-  const {
-    tasks,
-    todoTasks,
-    completedTasks,
-    overdueTasks,
-    pendingFinancialImpact,
-    mutate,
-  } = useTasks(familyId);
+  const { tasks, mutate } = useTasks(familyId);
 
   const [filter, setFilter] = useState<'all' | 'todo' | 'completed'>('all');
-  const [showCreateTask, setShowCreateTask] = useState(false);
 
   useEffect(() => {
     if (!familyId) {
@@ -36,14 +27,20 @@ function TarefasContent() {
     }
   }, [familyId, router]);
 
+  // Filter tasks assigned to current user
+  const myTasks = tasks.filter(
+    (task) => task.assigneeId === session?.user?.id || task.createdById === session?.user?.id
+  );
+
   const getFilteredTasks = () => {
+    const filtered = myTasks;
     switch (filter) {
       case 'todo':
-        return todoTasks;
+        return filtered.filter((t) => t.status === 'todo');
       case 'completed':
-        return completedTasks;
+        return filtered.filter((t) => t.status === 'completed');
       default:
-        return tasks;
+        return filtered;
     }
   };
 
@@ -66,6 +63,8 @@ function TarefasContent() {
     switch (status) {
       case 'completed':
         return 'text-green-600 bg-green-50 dark:bg-green-900/20';
+      case 'in_progress':
+        return 'text-blue-600 bg-blue-50 dark:bg-blue-900/20';
       case 'todo':
         return 'text-gray-600 bg-gray-50 dark:bg-gray-900/20';
       default:
@@ -98,10 +97,10 @@ function TarefasContent() {
         <div className="text-center">
           <CheckSquare className="w-16 h-16 text-purple-600 dark:text-purple-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Sistema de Tarefas
+            Minhas Tarefas
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Faça login para gerenciar suas tarefas
+            Faça login para ver suas tarefas
           </p>
         </div>
       </div>
@@ -114,7 +113,7 @@ function TarefasContent() {
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-purple-600 dark:text-purple-400 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">
-            Selecione uma família para ver as tarefas
+            Selecione uma família para ver suas tarefas
           </p>
           <Link
             href="/dashboard"
@@ -132,70 +131,37 @@ function TarefasContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <CheckSquare className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  Tarefas
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {selectedFamily.name}
-                </p>
-              </div>
+          <div className="flex items-center gap-3 mb-4">
+            <CheckSquare className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Minhas Tarefas
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                {selectedFamily.name}
+              </p>
             </div>
-            <button
-              onClick={() => setShowCreateTask(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Nova Tarefa
-            </button>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 dark:text-gray-400 text-sm">A Fazer</span>
-              <CheckSquare className="w-5 h-5 text-gray-600" />
-            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total</p>
             <p className="text-3xl font-bold text-gray-900 dark:text-white">
-              {todoTasks.length}
+              {myTasks.length}
             </p>
           </div>
-
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 dark:text-gray-400 text-sm">Concluídas</span>
-              <CheckSquare className="w-5 h-5 text-green-600" />
-            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">A Fazer</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+              {myTasks.filter((t) => t.status === 'todo').length}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Concluídas</p>
             <p className="text-3xl font-bold text-green-600">
-              {completedTasks.length}
-            </p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 dark:text-gray-400 text-sm">Atrasadas</span>
-              <AlertCircle className="w-5 h-5 text-red-600" />
-            </div>
-            <p className="text-3xl font-bold text-red-600">
-              {overdueTasks.length}
-            </p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600 dark:text-gray-400 text-sm">Impacto Financeiro</span>
-              <DollarSign className={`w-5 h-5 ${pendingFinancialImpact < 0 ? 'text-red-600' : 'text-green-600'}`} />
-            </div>
-            <p className={`text-2xl font-bold ${pendingFinancialImpact < 0 ? 'text-red-600' : 'text-green-600'}`}>
-              {formatCurrency(Math.abs(pendingFinancialImpact).toString())}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              {pendingFinancialImpact < 0 ? 'A pagar' : 'A receber'}
+              {myTasks.filter((t) => t.status === 'completed').length}
             </p>
           </div>
         </div>
@@ -210,7 +176,7 @@ function TarefasContent() {
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
-            Todas ({tasks.length})
+            Todas ({myTasks.length})
           </button>
           <button
             onClick={() => setFilter('todo')}
@@ -220,7 +186,7 @@ function TarefasContent() {
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
-            A Fazer ({todoTasks.length})
+            A Fazer ({myTasks.filter((t) => t.status === 'todo').length})
           </button>
           <button
             onClick={() => setFilter('completed')}
@@ -230,7 +196,7 @@ function TarefasContent() {
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
-            Concluídas ({completedTasks.length})
+            Concluídas ({myTasks.filter((t) => t.status === 'completed').length})
           </button>
         </div>
 
@@ -242,16 +208,9 @@ function TarefasContent() {
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                 Nenhuma tarefa encontrada
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Crie sua primeira tarefa para começar
+              <p className="text-gray-600 dark:text-gray-400">
+                Você não tem tarefas neste filtro
               </p>
-              <button
-                onClick={() => setShowCreateTask(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-              >
-                <Plus className="w-5 h-5" />
-                Nova Tarefa
-              </button>
             </div>
           ) : (
             filteredTasks.map((task) => (
@@ -290,11 +249,6 @@ function TarefasContent() {
                           {formatCurrency(task.amount)}
                         </div>
                       )}
-                      {task.assignee && (
-                        <div>
-                          Responsável: {task.assignee.name}
-                        </div>
-                      )}
                     </div>
                   </div>
                   {task.status !== 'completed' && (
@@ -311,27 +265,14 @@ function TarefasContent() {
           )}
         </div>
       </div>
-
-      {/* Task Form Modal */}
-      {showCreateTask && selectedFamily && (
-        <TaskForm
-          familyId={familyId!}
-          familyMembers={selectedFamily.members}
-          onClose={() => setShowCreateTask(false)}
-          onSuccess={() => {
-            mutate();
-            toast.success('Tarefa criada com sucesso!');
-          }}
-        />
-      )}
     </div>
   );
 }
 
-export default function TarefasPage() {
+export default function MinhasTarefasPage() {
   return (
     <Suspense fallback={<div>Carregando...</div>}>
-      <TarefasContent />
+      <MinhasTarefasContent />
     </Suspense>
   );
 }
